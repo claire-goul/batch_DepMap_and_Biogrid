@@ -1,7 +1,33 @@
-import pandas as pd
-import numpy as np
+## WRITTEN BY CLAIRE GOUL AUGUST 2022
+## MIT LICENSE-- 2022
+##MIT License
+##
+##Copyright (c) [2022] [Claire Goul]
+##
+##Permission is hereby granted, free of charge, to any person obtaining a copy
+##of this software and associated documentation files (the "Software"), to deal
+##in the Software without restriction, including without limitation the rights
+##to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+##copies of the Software, and to permit persons to whom the Software is
+##furnished to do so, subject to the following conditions:
+##
+##The above copyright notice and this permission notice shall be included in all
+##copies or substantial portions of the Software.
+##
+##THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+##IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+##FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+##AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+##LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+##OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+##SOFTWARE.
 
-#Written by Claire Goul -- Last Updated Oct 2023
+
+
+
+import numpy as np
+import pandas as pd
+
 ##get_correlations_edgelist:
 #INPUTS 
 #genes: (excel file) with a column titled 'Gene' with list of genes of interest
@@ -37,7 +63,7 @@ def get_correlations_edgelist(genes,links_filtered,threshold,corrpos,num):
 ##INPUTS
 #genes: (excel file) with a column titled 'Gene' with list of genes of interest
 #bg = csv file of all Biogrid interactors for human genes (downloaded from https://downloads.thebiogrid.org/BioGRID/Release-Archive/BIOGRID-4.4.220/ # BIOGRID-MV-Physical)
-#filters:(list) of filters you want: either 'pull down', 'bioid', or both, or an empty list
+#filters:(list) of filters you want: either 'pull down', 'bioid', or both, or an empty list. you can look at the bg file to see what the possible filters are
 ##OUTPUT
 #edgelist_biogrid: file with two columns of  biogrid interactions, 'InteractorA' and 'InteractorB' and 'tuples' column containing a tuple of those
 #also make an option for biogrid only for corr and for hits only 
@@ -137,15 +163,17 @@ def merge3(list1, list2,list3):
 links_filtered=pd.read_excel('links_achilles.xlsx')
 
 bg=pd.read_csv('BIOGRID-ORGANISM-Homo_sapiens-4.4.212.csv')
-genes_of_interest=pd.read_excel('NPC1_andNT__4_hitsneg.xlsx')## can read in any excel file to filter the correlation matrix by
+genes_of_interest=pd.read_excel('npcandntcomb_rotenonethresh6_neg.xlsx')## can read in any excel file to filter the correlation matrix by
 
 #GET BIOGRID INTERACTIONS / COESSENTIAL GENES FOR GENES IN GENE LIST
-corr=get_correlations_edgelist(genes_of_interest,links_filtered,threshold=0.2,corrpos='True',num=5)#if you want the coessential genes only for your gene list, just use this
+corr=get_correlations_edgelist(genes_of_interest,links_filtered,threshold=0.2,corrpos='True',num=3)#if you want the coessential genes only for your gene list, just use this
 edgelist_biogrid=get_biogrid_edgelist(genes_of_interest,bg,filters=['psi-mi:"MI:0915"(physical association)'],numcitations=2) #if you want the biogrid only for your gene list, just use this
-edgelist_biogrid.to_excel('NPC1_andNT__4_hitsnegBG_2citations.xlsx')
-corr.to_excel('NPC1_andNT__4_hitsnegcorr_0.2thresh_top5.xlsx')
+
+#edgelist_biogrid.to_excel('genelist_bg_2citations.xlsx')
+#corr.to_excel('genelist_corr_top5.xlsx')
+#you can run the commented lines below if you want to get all the biogrid interactions for the coessential gene pairs only. however, you can also just do this in excel.
 corrwithbgforcorr = pd.merge(corr, edgelist_biogrid,  how='left', left_on=['Gene','Gene1'], right_on = ['Gene','Gene1'])
-corrwithbgforcorr.to_excel('NPC1_andNT__4_hitsnegcorr_0.2thresh_top5_bg2minforcorr.xlsx')
+corrwithbgforcorr.to_excel('genesoutputnegrotenonethresh6_npcandntcomb_corrbgforcorr.xlsx')
 
 #OPTIONS
 #CORR: --GET CORR MATRIX FOR ALL GENES IN GENE LIST
