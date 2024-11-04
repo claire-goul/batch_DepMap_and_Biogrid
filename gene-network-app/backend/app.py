@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 import io
 import requests
-import zipfile
 from io import BytesIO
 
 app = FastAPI()
@@ -139,33 +138,63 @@ async def startup_event():
     global links_filtered, biogrid_df
     
     try:
-        # Construct file paths
-        links_path = os.path.join(BASE_DIR, "data", "links_achilles.xlsx")
-        biogrid_path = os.path.join(BASE_DIR, "data", "biogrid_human_processed_4_4_212.xlsx")
+        # Print current working directory and list files
+        current_dir = os.getcwd()
+        print(f"Current working directory: {current_dir}")
+        print("Files in current directory:")
+        print(os.listdir(current_dir))
         
-        print(f"Looking for files in: {BASE_DIR}")
-        print(f"Links file path: {links_path}")
-        print(f"BioGrid file path: {biogrid_path}")
+        if os.path.exists('data'):
+            print("Files in data directory:")
+            print(os.listdir('data'))
         
-        # Check if files exist
-        if not os.path.exists(links_path):
-            raise FileNotFoundError(f"Links file not found at {links_path}")
-        if not os.path.exists(biogrid_path):
-            raise FileNotFoundError(f"BioGrid file not found at {biogrid_path}")
+        # Try different possible paths
+        possible_paths = [
+            os.path.join('data', 'links_achilles.xlsx'),
+            os.path.join(current_dir, 'data', 'links_achilles.xlsx'),
+            'links_achilles.xlsx'
+        ]
         
+        links_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                links_path = path
+                print(f"Found links file at: {path}")
+                break
+                
+        if not links_path:
+            raise FileNotFoundError("Could not find links_achilles.xlsx in any expected location")
+            
         # Load links file
-        print("Loading links file...")
+        print(f"Loading links file from {links_path}...")
         links_filtered = pd.read_excel(links_path, engine='openpyxl')
         print(f"Links file loaded successfully: {len(links_filtered)} rows")
 
+        # Similar process for BioGrid file
+        possible_paths = [
+            os.path.join('data', 'biogrid_human_processed_4_4_212.xlsx'),
+            os.path.join(current_dir, 'data', 'biogrid_human_processed_4_4_212.xlsx'),
+            'biogrid_human_processed_4_4_212.xlsx'
+        ]
+        
+        biogrid_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                biogrid_path = path
+                print(f"Found BioGrid file at: {path}")
+                break
+                
+        if not biogrid_path:
+            raise FileNotFoundError("Could not find biogrid_human_processed_4_4_212.xlsx in any expected location")
+            
         # Load BioGrid file
-        print("Loading BioGrid file...")
+        print(f"Loading BioGrid file from {biogrid_path}...")
         biogrid_df = pd.read_excel(biogrid_path, engine='openpyxl')
         print(f"BioGrid file loaded successfully: {len(biogrid_df)} rows")
+        
     except Exception as e:
         print(f"Error loading files: {str(e)}")
         raise e
-
 
 @app.get("/")
 async def root():
