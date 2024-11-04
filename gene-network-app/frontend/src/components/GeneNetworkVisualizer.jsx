@@ -1,12 +1,10 @@
+// src/components/GeneNetworkVisualizer.jsx
 import React, { useState, useRef, useEffect } from 'react';
-// Update imports to use local files
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Move } from 'lucide-react';
-
-// Rest of the component code remains the same...
 
 const GeneNetworkVisualizer = () => {
   const [nodes, setNodes] = useState([]);
@@ -25,7 +23,7 @@ const GeneNetworkVisualizer = () => {
 
   const checkServerStatus = async () => {
     try {
-      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/status/');
+      const response = await fetch('http://localhost:8000/status/');
       if (!response.ok) throw new Error('Server status check failed');
       const status = await response.json();
       setServerStatus(status);
@@ -47,7 +45,7 @@ const GeneNetworkVisualizer = () => {
       const formData = new FormData();
       formData.append('genes_file', file);
 
-      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/upload/', {
+      const response = await fetch('http://localhost:8000/upload/', {
         method: 'POST',
         body: formData,
       });
@@ -252,9 +250,9 @@ const GeneNetworkVisualizer = () => {
 
                   <g transform="translate(20, 420)">
                     <rect width="240" height="70" fill="white" opacity="0.9"/>
-                    <circle cx="15" cy="15" r="6" fill="#22c55e"/>
+                    <circle cx="15" cy="15" r={6} fill="#22c55e"/>
                     <text x="30" y="19" className="text-xs">Genes of Interest</text>
-                    <circle cx="15" cy="35" r="6" fill="#94a3b8"/>
+                    <circle cx="15" cy="35" r={6} fill="#94a3b8"/>
                     <text x="30" y="39" className="text-xs">Other Genes</text>
                     <line x1="10" y1="55" x2="20" y2="55" stroke="#22c55e" strokeWidth="2"/>
                     <text x="30" y="59" className="text-xs">Positive Correlation</text>
