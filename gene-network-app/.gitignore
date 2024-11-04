@@ -1,0 +1,3 @@
+# .gitignore
+# Don't ignore Excel files in the data directory
+!backend/data/*.xlsx
