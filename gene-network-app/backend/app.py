@@ -49,38 +49,28 @@ def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     return corr
 
 def get_biogrid_edgelist(genes, bg, filters, numcitations):
-    """
-    Updated function to handle mitab format
-    Mitab columns of interest:
-    - ID Interactor A
-    - ID Interactor B
-    - Alt IDs Interactor A
-    - Alt IDs Interactor B
-    - Alias IDs Interactor A
-    - Alias IDs Interactor B
-    - Interaction Detection Method
-    - Publication Identifier(s)
-    """
     print("Processing BioGrid data...")
     
-    # Function to extract gene symbols from ID fields
     def extract_gene_symbols(row, interactor='A'):
         symbols = set()
         
-        # Check official IDs
-        id_col = f'Alt. ID Interactor {interactor}'
-        if pd.notnull(row[id_col]):
-            for id_entry in str(row[id_col]).split('|'):
-                if 'hgnc:' in id_entry.lower():
-                    gene = id_entry.split('(')[0].split(':')[-1]
+        # Extract from Aliases
+        alias_col = f'Aliases Interactor {interactor}'
+        if pd.notnull(row[alias_col]):
+            aliases = str(row[alias_col]).split('|')
+            for alias in aliases:
+                if 'entrez gene/locuslink:' in alias.lower():
+                    # Extract gene name before (gene name synonym)
+                    gene = alias.split('(')[0].split(':')[-1].strip()
                     symbols.add(gene)
         
-        # Check aliases
-        alias_col = f'Alias(es) interactor {interactor}'
-        if pd.notnull(row[alias_col]):
-            for alias in str(row[alias_col]).split('|'):
-                if 'hgnc:' in alias.lower():
-                    gene = alias.split('(')[0].split(':')[-1]
+        # Extract from Alt IDs
+        alt_id_col = f'Alt IDs Interactor {interactor}'
+        if pd.notnull(row[alt_id_col]):
+            alt_ids = str(row[alt_id_col]).split('|')
+            for alt_id in alt_ids:
+                if 'entrez gene/locuslink:' in alt_id.lower():
+                    gene = alt_id.split('|')[0].split(':')[-1].strip()
                     symbols.add(gene)
         
         return list(symbols)
