@@ -138,17 +138,17 @@ async def startup_event():
     try:
         # Load links file
         print("Loading links file...")
-        links_filtered = pd.read_excel('links_achilles.xlsx')
+        links_filtered = pd.read_excel('links_achilles.xlsx', engine='openpyxl')
         print(f"Links file loaded successfully: {len(links_filtered)} rows")
 
         # Load BioGrid file
         print("Loading BioGrid file...")
-        biogrid_df = pd.read_excel('biogrid_human_processed_4_4_212.xlsx')
+        biogrid_df = pd.read_excel('biogrid_human_processed_4_4_212.xlsx', engine='openpyxl')
         print(f"BioGrid file loaded successfully: {len(biogrid_df)} rows")
     except Exception as e:
         print(f"Error loading files: {str(e)}")
         raise e
-    
+
 
 
 @app.get("/")
@@ -189,7 +189,7 @@ async def process_network(genes_file: UploadFile = File(...)):
     
     try:
         # Read the genes file
-        genes_df = pd.read_excel(io.BytesIO(await genes_file.read()))
+        genes_df = pd.read_excel(io.BytesIO(await genes_file.read()), engine='openpyxl')
 
         # Process using pre-loaded data
         corr = get_correlations_edgelist(
