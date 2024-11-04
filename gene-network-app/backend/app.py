@@ -1,4 +1,5 @@
 # app.py with updated BioGrid processing
+import os
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
@@ -8,12 +9,11 @@ import requests
 import zipfile
 from io import BytesIO
 
+app = FastAPI()
+
 # Initialize global variables
 links_filtered = None
 biogrid_df = None
-
-
-app = FastAPI()
 
 # Enable CORS
 app.add_middleware(
@@ -23,6 +23,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Get the directory where app.py is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     links_filtered_newfinal = pd.merge(links_filtered, genes, on=['Gene'])
@@ -126,8 +129,8 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     else:
         return pd.DataFrame(columns=['Gene', 'Gene1', 'bg'])
 
-import os
 import subprocess
+
 
 
 @app.on_event("startup")
@@ -136,19 +139,32 @@ async def startup_event():
     global links_filtered, biogrid_df
     
     try:
+        # Construct file paths
+        links_path = os.path.join(BASE_DIR, "data", "links_achilles.xlsx")
+        biogrid_path = os.path.join(BASE_DIR, "data", "biogrid_human_processed_4_4_212.xlsx")
+        
+        print(f"Looking for files in: {BASE_DIR}")
+        print(f"Links file path: {links_path}")
+        print(f"BioGrid file path: {biogrid_path}")
+        
+        # Check if files exist
+        if not os.path.exists(links_path):
+            raise FileNotFoundError(f"Links file not found at {links_path}")
+        if not os.path.exists(biogrid_path):
+            raise FileNotFoundError(f"BioGrid file not found at {biogrid_path}")
+        
         # Load links file
         print("Loading links file...")
-        links_filtered = pd.read_excel('links_achilles.xlsx', engine='openpyxl')
+        links_filtered = pd.read_excel(links_path, engine='openpyxl')
         print(f"Links file loaded successfully: {len(links_filtered)} rows")
 
         # Load BioGrid file
         print("Loading BioGrid file...")
-        biogrid_df = pd.read_excel('biogrid_human_processed_4_4_212.xlsx', engine='openpyxl')
+        biogrid_df = pd.read_excel(biogrid_path, engine='openpyxl')
         print(f"BioGrid file loaded successfully: {len(biogrid_df)} rows")
     except Exception as e:
         print(f"Error loading files: {str(e)}")
         raise e
-
 
 
 @app.get("/")
