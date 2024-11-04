@@ -7,6 +7,7 @@ import numpy as np
 import io
 import requests
 from io import BytesIO
+importpathlib
 
 app = FastAPI()
 
@@ -144,56 +145,82 @@ async def startup_event():
         print("Files in current directory:")
         print(os.listdir(current_dir))
         
-        if os.path.exists('data'):
-            print("Files in data directory:")
-            print(os.listdir('data'))
+        # Try to read links file
+        links_path = os.path.join(current_dir, 'data', 'links_achilles.xlsx')
+        print(f"Attempting to read links file from: {links_path}")
         
-        # Try different possible paths
-        possible_paths = [
-            os.path.join('data', 'links_achilles.xlsx'),
-            os.path.join(current_dir, 'data', 'links_achilles.xlsx'),
-            'links_achilles.xlsx'
-        ]
-        
-        links_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                links_path = path
-                print(f"Found links file at: {path}")
-                break
-                
-        if not links_path:
-            raise FileNotFoundError("Could not find links_achilles.xlsx in any expected location")
+        # Check if file exists and print its size
+        if os.path.exists(links_path):
+            file_size = os.path.getsize(links_path)
+            print(f"Links file exists, size: {file_size} bytes")
             
-        # Load links file
-        print(f"Loading links file from {links_path}...")
-        links_filtered = pd.read_excel(links_path, engine='openpyxl')
-        print(f"Links file loaded successfully: {len(links_filtered)} rows")
+            # Try reading with different engines
+            try:
+                links_filtered = pd.read_excel(
+                    links_path,
+                    engine='openpyxl',
+                    storage_options={'engine': 'openpyxl'}
+                )
+            except Exception as e:
+                print(f"Failed with openpyxl: {str(e)}")
+                try:
+                    links_filtered = pd.read_excel(
+                        links_path,
+                        engine='xlrd'
+                    )
+                except Exception as e:
+                    print(f"Failed with xlrd: {str(e)}")
+                    # Try reading as CSV as last resort
+                    links_filtered = pd.read_csv(links_path)
+                    
+            print(f"Links file loaded successfully: {len(links_filtered)} rows")
+        else:
+            print(f"Links file not found at {links_path}")
+            print("Contents of data directory:")
+            data_dir = os.path.join(current_dir, 'data')
+            if os.path.exists(data_dir):
+                print(os.listdir(data_dir))
+            else:
+                print("Data directory not found")
+            raise FileNotFoundError(f"Links file not found at {links_path}")
 
         # Similar process for BioGrid file
-        possible_paths = [
-            os.path.join('data', 'biogrid_human_processed_4_4_212.xlsx'),
-            os.path.join(current_dir, 'data', 'biogrid_human_processed_4_4_212.xlsx'),
-            'biogrid_human_processed_4_4_212.xlsx'
-        ]
+        biogrid_path = os.path.join(current_dir, 'data', 'biogrid_human_processed_4_4_212.xlsx')
+        print(f"Attempting to read BioGrid file from: {biogrid_path}")
         
-        biogrid_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                biogrid_path = path
-                print(f"Found BioGrid file at: {path}")
-                break
-                
-        if not biogrid_path:
-            raise FileNotFoundError("Could not find biogrid_human_processed_4_4_212.xlsx in any expected location")
+        if os.path.exists(biogrid_path):
+            file_size = os.path.getsize(biogrid_path)
+            print(f"BioGrid file exists, size: {file_size} bytes")
             
-        # Load BioGrid file
-        print(f"Loading BioGrid file from {biogrid_path}...")
-        biogrid_df = pd.read_excel(biogrid_path, engine='openpyxl')
-        print(f"BioGrid file loaded successfully: {len(biogrid_df)} rows")
-        
+            try:
+                biogrid_df = pd.read_excel(
+                    biogrid_path,
+                    engine='openpyxl',
+                    storage_options={'engine': 'openpyxl'}
+                )
+            except Exception as e:
+                print(f"Failed with openpyxl: {str(e)}")
+                try:
+                    biogrid_df = pd.read_excel(
+                        biogrid_path,
+                        engine='xlrd'
+                    )
+                except Exception as e:
+                    print(f"Failed with xlrd: {str(e)}")
+                    # Try reading as CSV as last resort
+                    biogrid_df = pd.read_csv(biogrid_path)
+                    
+            print(f"BioGrid file loaded successfully: {len(biogrid_df)} rows")
+        else:
+            print(f"BioGrid file not found at {biogrid_path}")
+            raise FileNotFoundError(f"BioGrid file not found at {biogrid_path}")
+
     except Exception as e:
         print(f"Error loading files: {str(e)}")
+        print(f"Error type: {type(e)}")
+        print(f"Error details: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         raise e
 
 @app.get("/")
