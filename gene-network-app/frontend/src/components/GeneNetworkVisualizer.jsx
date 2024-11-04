@@ -23,7 +23,7 @@ const GeneNetworkVisualizer = () => {
 
   const checkServerStatus = async () => {
     try {
-      const response = await fetch('http://localhost:8000/status/');
+      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/status/');
       if (!response.ok) throw new Error('Server status check failed');
       const status = await response.json();
       setServerStatus(status);
@@ -45,7 +45,7 @@ const GeneNetworkVisualizer = () => {
       const formData = new FormData();
       formData.append('genes_file', file);
 
-      const response = await fetch('http://localhost:8000/upload/', {
+      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/upload/', {
         method: 'POST',
         body: formData,
       });
