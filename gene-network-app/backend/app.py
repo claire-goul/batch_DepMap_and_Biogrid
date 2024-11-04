@@ -7,7 +7,7 @@ import numpy as np
 import io
 import requests
 from io import BytesIO
-importpathlib
+import pathlib
 
 app = FastAPI()
 
