@@ -1,14 +1,19 @@
-import * as React from "react"
-import { Alert as AlertRoot } from "@radix-ui/react-alert"
+// src/components/ui/alert.jsx
+import React from 'react';
 
-const Alert = React.forwardRef(({ className, variant = "default", ...props }, ref) => (
-  <AlertRoot ref={ref} className={`relative w-full rounded-lg border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&:has(svg)]:pl-11 ${className}`} {...props} />
-))
-Alert.displayName = "Alert"
+export const Alert = React.forwardRef(({ children, className = '', variant = 'default', ...props }, ref) => {
+  const baseStyles = 'relative w-full rounded-lg border p-4';
+  const variantStyles = variant === 'destructive' ? 'border-red-500 text-red-700 bg-red-50' : 'border-gray-200 bg-white';
+  
+  return (
+    <div ref={ref} className={`${baseStyles} ${variantStyles} ${className}`} {...props}>
+      {children}
+    </div>
+  );
+});
 
-const AlertDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={`text-sm [&_p]:leading-relaxed ${className}`} {...props} />
-))
-AlertDescription.displayName = "AlertDescription"
-
-export { Alert, AlertDescription }
+export const AlertDescription = React.forwardRef(({ children, className = '', ...props }, ref) => (
+  <div ref={ref} className={`text-sm mt-1 ${className}`} {...props}>
+    {children}
+  </div>
+));
