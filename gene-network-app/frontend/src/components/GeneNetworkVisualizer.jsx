@@ -157,14 +157,19 @@ const GeneNetworkVisualizer = () => {
           )}
 
           <div>
-            <h3 className="text-sm font-medium mb-2">Upload Genes of Interest File (.xlsx)</h3>
+            <h3 className="text-sm font-medium mb-2">Upload Genes of Interest File (.xlsx with Column "Gene" and rows genes)</h3>
             <Input
               type="file"
               accept=".xlsx"
-              onChange={(e) => processFile(e.target.files[0])}
-              className="flex-1"
-              disabled={isProcessing || !serverStatus?.links_file_loaded || !serverStatus?.biogrid_file_loaded}
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  processFile(e.target.files[0]);
+                }
+              }}
+              className="flex-1 cursor-pointer"
+              disabled={isProcessing}  // Only disable while processing, not based on server status
             />
+            {isProcessing && <div className="mt-2">Processing file...</div>}
           </div>
 
           {error && (
