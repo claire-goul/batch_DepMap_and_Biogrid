@@ -31,25 +31,32 @@ app.add_middleware(
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     logger.info("Starting correlation analysis...")
     
-    links_filtered_newfinal = pd.merge(links_filtered, genes, on=['Gene'])
+    # Convert genes list to set for faster lookup
+    genes_set = set(genes['Gene'])
+    
+    # Filter links first to reduce merge size
+    links_subset = links_filtered[links_filtered['Gene'].isin(genes_set)]
+    
     if corrpos:
-        links_filtered_newfinal = links_filtered_newfinal[links_filtered_newfinal['corrscore'] >= threshold]
-        grouped = links_filtered_newfinal.groupby('Gene')
-        toplargestdf = pd.DataFrame()
-        for var1, subdict in grouped:
-            sub = subdict[subdict['corrscore'] > 0]
-            sublargest = sub.nlargest(n=num, columns='corrscore')
-            toplargestdf = pd.concat([toplargestdf, sublargest])
+        # Filter by threshold first
+        links_subset = links_subset[links_subset['corrscore'] >= threshold]
     else:
-        links_filtered_newfinal = links_filtered_newfinal[links_filtered_newfinal['corrscore'] <= threshold]
-        grouped = links_filtered_newfinal.groupby('Gene')
-        toplargestdf = pd.DataFrame()
-        for var1, subdict in grouped:
-            sub = subdict[subdict['corrscore'] < 0]
-            sublargest = sub.nlargest(n=num, columns='corrscore')
-            toplargestdf = pd.concat([toplargestdf, sublargest])
-            
-    corr = (toplargestdf.reset_index()).drop(['index'], axis=1)
+        links_subset = links_subset[links_subset['corrscore'] <= threshold]
+    
+    # Group and process
+    result_dfs = []
+    for gene in genes_set:
+        gene_data = links_subset[links_subset['Gene'] == gene]
+        if corrpos:
+            gene_data = gene_data[gene_data['corrscore'] > 0]
+        else:
+            gene_data = gene_data[gene_data['corrscore'] < 0]
+        
+        result_dfs.append(gene_data.nlargest(n=num, columns='corrscore'))
+    
+    # Combine results
+    corr = pd.concat(result_dfs, ignore_index=True)
+    
     logger.info(f"Correlation analysis complete. Found {len(corr)} correlations.")
     return corr
 
