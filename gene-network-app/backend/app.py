@@ -137,6 +137,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
         return edgelist_biogrid_final
     else:
         return pd.DataFrame(columns=['Gene', 'Gene1', 'bg'])
+        
 
 @app.on_event("startup")
 async def startup_event():
