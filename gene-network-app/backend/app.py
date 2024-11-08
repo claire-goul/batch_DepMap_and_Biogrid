@@ -1,27 +1,11 @@
-import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import pandas as pd
 import numpy as np
 import io
 import os
-
-ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS",
-    "https://batchnetwork.netlify.app,http://localhost:3000"
-).split(",")
-
-
-app = FastAPI()
-
-# Enable CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://batchnetwork.netlify.app"],  # Just your Netlify domain for now
-    allow_credentials=False,  # Change this to False
-    allow_methods=["GET", "POST"],  # Specify the methods you need
-    allow_headers=["*"],
-)
+import logging
 
 # Configure logging
 logging.basicConfig(
@@ -30,12 +14,51 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+app = FastAPI()
+
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://batchnetwork.netlify.app,http://localhost:3000"
+).split(",")
+
 # Initialize global variables
 links_filtered = None
 biogrid_df = None
 
+# CORS configuration - make sure this is BEFORE any routes
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://batchnetwork.netlify.app"],
+    allow_origin_regex=None,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=False,
+    expose_headers=[],
+    max_age=600,
+)
 
 
+# Add CORS headers to all responses
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "https://batchnetwork.netlify.app"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# Add OPTIONS endpoint
+@app.options("/upload")
+async def options_handler():
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "https://batchnetwork.netlify.app",
+            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
+    
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     logger.info("Starting correlation analysis...")
     
