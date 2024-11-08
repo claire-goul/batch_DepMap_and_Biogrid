@@ -36,33 +36,39 @@ const GeneNetworkVisualizer = () => {
     }
   };
 
-  const processFile = async (file) => {
-    if (!file) {
-      setError('Please upload a genes file');
-      return;
+const processFile = async (file) => {
+  if (!file) {
+    setError('Please upload a genes file');
+    return;
+  }
+
+  console.log('Processing file:', file.name);
+  setIsProcessing(true);
+  setError('');
+
+  try {
+    const formData = new FormData();
+    formData.append('genes_file', file);
+
+    console.log('Sending request to:', `${API_URL}/upload/`);
+    const response = await fetch(`${API_URL}/upload/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Accept': 'application/json',
+      },
+      mode: 'cors',
+      credentials: 'omit'
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Server response:', errorText);
+      throw new Error(errorText || 'Network processing failed');
     }
 
-    console.log('Processing file:', file.name);
-    setIsProcessing(true);
-    setError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('genes_file', file);
-
-      console.log('Sending request to:', `${API_URL}/upload/`);
-      const response = await fetch(`${API_URL}/upload/`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Network processing failed');
-      }
-
-      const networkData = await response.json();
-      console.log('Received network data:', networkData);
+    const networkData = await response.json();
+    console.log('Received network data:', networkData);
       
       // Create node positions in a circle
       const radius = 200;
