@@ -6,6 +6,11 @@ import numpy as np
 import io
 import os
 
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://batchnetwork.netlify.app,http://localhost:3000"
+).split(",")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -22,10 +27,7 @@ biogrid_df = None
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://batchnetwork.netlify.app",  # Your Netlify domain
-        "http://localhost:3000",  # For local development
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
