@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Move } from 'lucide-react';
 
-const_API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
+const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
 const GeneNetworkVisualizer = () => {
   const [nodes, setNodes] = useState([]);
