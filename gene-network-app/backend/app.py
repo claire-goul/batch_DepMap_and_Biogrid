@@ -11,6 +11,18 @@ ALLOWED_ORIGINS = os.getenv(
     "https://batchnetwork.netlify.app,http://localhost:3000"
 ).split(",")
 
+
+app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://batchnetwork.netlify.app"],  # Just your Netlify domain for now
+    allow_credentials=False,  # Change this to False
+    allow_methods=["GET", "POST"],  # Specify the methods you need
+    allow_headers=["*"],
+)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -18,20 +30,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
-
 # Initialize global variables
 links_filtered = None
 biogrid_df = None
 
-# Enable CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     logger.info("Starting correlation analysis...")
