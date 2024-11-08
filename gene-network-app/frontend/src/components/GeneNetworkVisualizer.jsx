@@ -1,11 +1,11 @@
-const_API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Move } from 'lucide-react';
+
+const_API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
 const GeneNetworkVisualizer = () => {
   const [nodes, setNodes] = useState([]);
