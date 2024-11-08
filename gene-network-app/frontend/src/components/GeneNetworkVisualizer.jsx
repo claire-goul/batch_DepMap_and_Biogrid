@@ -1,4 +1,3 @@
-// src/components/GeneNetworkVisualizer.jsx
 const_API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
 import React, { useState, useRef, useEffect } from 'react';
