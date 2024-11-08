@@ -22,63 +22,70 @@ const GeneNetworkVisualizer = () => {
     checkServerStatus();
   }, []);
 
-  const checkServerStatus = async () => {
-    try {
-      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/status/');
-      if (!response.ok) throw new Error('Server status check failed');
-      const status = await response.json();
-      setServerStatus(status);
-    } catch (err) {
-      setError('Could not connect to server: ' + err.message);
+const checkServerStatus = async () => {
+  try {
+    console.log('Checking server status...');
+    const response = await fetch(`${API_URL}/status/`);
+    if (!response.ok) throw new Error('Server status check failed');
+    const status = await response.json();
+    console.log('Server status:', status);
+    setServerStatus(status);
+  } catch (err) {
+    console.error('Server status error:', err);
+    setError('Could not connect to server: ' + err.message);
+  }
+};
+
+const processFile = async (file) => {
+  if (!file) {
+    setError('Please upload a genes file');
+    return;
+  }
+
+  console.log('Processing file:', file.name);
+  setIsProcessing(true);
+  setError('');
+
+  try {
+    const formData = new FormData();
+    formData.append('genes_file', file);
+
+    console.log('Sending request to:', `${API_URL}/upload/`);
+    const response = await fetch(`${API_URL}/upload/`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Network processing failed');
     }
-  };
 
-  const processFile = async (file) => {
-    if (!file) {
-      setError('Please upload a genes file');
-      return;
-    }
+    const networkData = await response.json();
+    console.log('Received network data:', networkData);
+    
+    // Create node positions in a circle
+    const radius = 200;
+    const centerX = 300;
+    const centerY = 250;
+    
+    const nodePositions = networkData.nodes.map((node, i) => ({
+      ...node,
+      x: centerX + radius * Math.cos((i / networkData.nodes.length) * 2 * Math.PI),
+      y: centerY + radius * Math.sin((i / networkData.nodes.length) * 2 * Math.PI),
+      labelOffset: { x: 0, y: 20 }
+    }));
 
-    setIsProcessing(true);
-    setError('');
+    setNodes(nodePositions);
+    setEdges(networkData.edges);
 
-    try {
-      const formData = new FormData();
-      formData.append('genes_file', file);
-
-      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/upload/', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Network processing failed');
-      }
-
-      const networkData = await response.json();
-      
-      // Create node positions in a circle
-      const radius = 200;
-      const centerX = 300;
-      const centerY = 250;
-      
-      const nodePositions = networkData.nodes.map((node, i) => ({
-        ...node,
-        x: centerX + radius * Math.cos((i / networkData.nodes.length) * 2 * Math.PI),
-        y: centerY + radius * Math.sin((i / networkData.nodes.length) * 2 * Math.PI),
-        labelOffset: { x: 0, y: 20 }
-      }));
-
-      setNodes(nodePositions);
-      setEdges(networkData.edges);
-
-    } catch (err) {
-      setError(`Error processing file: ${err.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  } catch (err) {
+    console.error('Processing error:', err);
+    setError(`Error processing file: ${err.message}`);
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const handleWheel = (e) => {
     e.preventDefault();
