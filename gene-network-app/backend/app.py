@@ -41,7 +41,15 @@ app.add_middleware(
 # Add CORS headers to all responses
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
+    logger.info(f"Incoming request from origin: {request.headers.get('origin')}")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request headers: {request.headers}")
+    
     response = await call_next(request)
+    
+    # Log response headers
+    logger.info(f"Response headers: {response.headers}")
+    
     response.headers["Access-Control-Allow-Origin"] = "https://batchnetwork.netlify.app"
     response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
