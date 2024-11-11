@@ -262,10 +262,31 @@ async def get_status():
         "biogrid_file_rows": len(biogrid_df) if biogrid_df is not None else 0,
         "server_status": "running"
     }
-
+    
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.info(f"""
+    --- Incoming Request ---
+    Method: {request.method}
+    URL: {request.url}
+    Headers: {request.headers}
+    """)
+    
+    response = await call_next(request)
+    
+    logger.info(f"""
+    --- Outgoing Response ---
+    Status: {response.status_code}
+    Headers: {response.headers}
+    """)
+    
+    return response
+    
 @app.post("/upload/")
 async def process_network(genes_file: UploadFile = File(...)):
     global links_filtered, biogrid_df
+    logger.info("Upload endpoint called")
+    logger.info(f"Request headers: {genes_file.headers}")
     
     # Check if required files are loaded
     if links_filtered is None or biogrid_df is None:
