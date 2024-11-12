@@ -26,42 +26,12 @@ biogrid_df = None
 # CORS configuration - make sure this is BEFORE any routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_methods=["*"],
+    allow_origins=["https://batchnetwork.netlify.app"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
     allow_credentials=False,
     max_age=600,
 )
-
-
-# Add CORS headers to all responses
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    logger.info(f"Incoming request from origin: {request.headers.get('origin')}")
-    logger.info(f"Request method: {request.method}")
-    logger.info(f"Request headers: {request.headers}")
-    
-    response = await call_next(request)
-    
-    # Log response headers
-    logger.info(f"Response headers: {response.headers}")
-    
-    response.headers["Access-Control-Allow-Origin"] = "https://batchnetwork.netlify.app"
-    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
-# Add OPTIONS endpoint
-@app.options("/upload")
-async def options_handler():
-    return JSONResponse(
-        content={},
-        headers={
-            "Access-Control-Allow-Origin": "https://batchnetwork.netlify.app",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
     
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     logger.info("Starting correlation analysis...")
