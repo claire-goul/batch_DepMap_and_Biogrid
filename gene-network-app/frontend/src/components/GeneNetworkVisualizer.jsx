@@ -1,10 +1,11 @@
-// src/components/GeneNetworkVisualizer.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Move } from 'lucide-react';
+
+const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
 const GeneNetworkVisualizer = () => {
   const [nodes, setNodes] = useState([]);
@@ -23,39 +24,51 @@ const GeneNetworkVisualizer = () => {
 
   const checkServerStatus = async () => {
     try {
-      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/status/');
+      console.log('Checking server status...');
+      const response = await fetch(`${API_URL}/status/`);
       if (!response.ok) throw new Error('Server status check failed');
       const status = await response.json();
+      console.log('Server status:', status);
       setServerStatus(status);
     } catch (err) {
+      console.error('Server status error:', err);
       setError('Could not connect to server: ' + err.message);
     }
   };
 
-  const processFile = async (file) => {
-    if (!file) {
-      setError('Please upload a genes file');
-      return;
+const processFile = async (file) => {
+  if (!file) {
+    setError('Please upload a genes file');
+    return;
+  }
+
+  console.log('Processing file:', file.name);
+  setIsProcessing(true);
+  setError('');
+
+  try {
+    const formData = new FormData();
+    formData.append('genes_file', file);
+
+    console.log('Sending request to:', `${API_URL}/upload/`);
+    const response = await fetch(`${API_URL}/upload/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Accept': 'application/json',
+      },
+      mode: 'cors',
+      credentials: 'omit'
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Server response:', errorText);
+      throw new Error(errorText || 'Network processing failed');
     }
 
-    setIsProcessing(true);
-    setError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('genes_file', file);
-
-      const response = await fetch('https://batch-depmap-and-biogrid.onrender.com/upload/', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Network processing failed');
-      }
-
-      const networkData = await response.json();
+    const networkData = await response.json();
+    console.log('Received network data:', networkData);
       
       // Create node positions in a circle
       const radius = 200;
@@ -73,6 +86,7 @@ const GeneNetworkVisualizer = () => {
       setEdges(networkData.edges);
 
     } catch (err) {
+      console.error('Processing error:', err);
       setError(`Error processing file: ${err.message}`);
     } finally {
       setIsProcessing(false);
@@ -136,8 +150,8 @@ const GeneNetworkVisualizer = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {serverStatus && (
-            <div className="space-y-2">
+          {serverStatus ? (
+            <div className="space-y-2 mb-4">
               <Alert variant={serverStatus.links_file_loaded ? "default" : "destructive"}>
                 <AlertDescription>
                   Links file: {serverStatus.links_file_loaded ? 
@@ -153,6 +167,12 @@ const GeneNetworkVisualizer = () => {
                 </AlertDescription>
               </Alert>
             </div>
+          ) : (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Checking server status...
+              </AlertDescription>
+            </Alert>
           )}
 
           <div>
@@ -160,21 +180,20 @@ const GeneNetworkVisualizer = () => {
             <Input
               type="file"
               accept=".xlsx"
-              onChange={(e) => processFile(e.target.files[0])}
-              className="flex-1"
-              disabled={isProcessing || !serverStatus?.links_file_loaded || !serverStatus?.biogrid_file_loaded}
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  processFile(e.target.files[0]);
+                }
+              }}
+              className="flex-1 cursor-pointer"
+              disabled={isProcessing}
             />
+            {isProcessing && <div className="mt-2">Processing file...</div>}
           </div>
 
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {isProcessing && (
-            <Alert>
-              <AlertDescription>Processing network data...</AlertDescription>
             </Alert>
           )}
 

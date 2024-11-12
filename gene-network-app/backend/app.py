@@ -1,10 +1,11 @@
-import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import pandas as pd
 import numpy as np
 import io
 import os
+import logging
 
 # Configure logging
 logging.basicConfig(
@@ -15,114 +16,133 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://batchnetwork.netlify.app").split(',')
+
+
 # Initialize global variables
 links_filtered = None
 biogrid_df = None
 
-# Enable CORS
+# CORS configuration - make sure this is BEFORE any routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["https://batchnetwork.netlify.app"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    allow_credentials=False,
+    max_age=600,
 )
-
+    
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     logger.info("Starting correlation analysis...")
     
-    links_filtered_newfinal = pd.merge(links_filtered, genes, on=['Gene'])
+    # Convert genes list to set for faster lookup
+    genes_set = set(genes['Gene'])
+    
+    # Filter links first to reduce merge size
+    links_subset = links_filtered[links_filtered['Gene'].isin(genes_set)]
+    
     if corrpos:
-        links_filtered_newfinal = links_filtered_newfinal[links_filtered_newfinal['corrscore'] >= threshold]
-        grouped = links_filtered_newfinal.groupby('Gene')
-        toplargestdf = pd.DataFrame()
-        for var1, subdict in grouped:
-            sub = subdict[subdict['corrscore'] > 0]
-            sublargest = sub.nlargest(n=num, columns='corrscore')
-            toplargestdf = pd.concat([toplargestdf, sublargest])
+        # Filter by threshold first
+        links_subset = links_subset[links_subset['corrscore'] >= threshold]
     else:
-        links_filtered_newfinal = links_filtered_newfinal[links_filtered_newfinal['corrscore'] <= threshold]
-        grouped = links_filtered_newfinal.groupby('Gene')
-        toplargestdf = pd.DataFrame()
-        for var1, subdict in grouped:
-            sub = subdict[subdict['corrscore'] < 0]
-            sublargest = sub.nlargest(n=num, columns='corrscore')
-            toplargestdf = pd.concat([toplargestdf, sublargest])
-            
-    corr = (toplargestdf.reset_index()).drop(['index'], axis=1)
+        links_subset = links_subset[links_subset['corrscore'] <= threshold]
+    
+    # Group and process
+    result_dfs = []
+    for gene in genes_set:
+        gene_data = links_subset[links_subset['Gene'] == gene]
+        if corrpos:
+            gene_data = gene_data[gene_data['corrscore'] > 0]
+        else:
+            gene_data = gene_data[gene_data['corrscore'] < 0]
+        
+        result_dfs.append(gene_data.nlargest(n=num, columns='corrscore'))
+    
+    # Combine results
+    corr = pd.concat(result_dfs, ignore_index=True)
+    
     logger.info(f"Correlation analysis complete. Found {len(corr)} correlations.")
     return corr
 
 def get_biogrid_edgelist(genes, bg, filters, numcitations):
     logger.info("Processing BioGrid data...")
     
-    def extract_gene_symbols(row, interactor='A'):
-        symbols = set()
-        
-        # Extract from Aliases
-        alias_col = f'Aliases Interactor {interactor}'
-        if pd.notnull(row[alias_col]):
-            aliases = str(row[alias_col]).split('|')
-            for alias in aliases:
-                if 'entrez gene/locuslink:' in alias.lower():
-                    # Extract gene name before (gene name synonym)
-                    gene = alias.split('(')[0].split(':')[-1].strip()
-                    symbols.add(gene)
-        
-        # Extract from Alt IDs
-        alt_id_col = f'Alt IDs Interactor {interactor}'
-        if pd.notnull(row[alt_id_col]):
-            alt_ids = str(row[alt_id_col]).split('|')
-            for alt_id in alt_ids:
-                if 'entrez gene/locuslink:' in alt_id.lower():
-                    gene = alt_id.split('|')[0].split(':')[-1].strip()
-                    symbols.add(gene)
-        
-        return list(symbols)
-
-    # Create edge list
-    edges = []
+    # Convert genes list to set for faster lookup
     genes_list = set(genes['Gene'].str.upper())
     
-    logger.info(f"Processing {len(bg)} interactions...")
+    # Pre-process gene symbols for all rows at once
+    def extract_gene_symbols_batch(df, interactor='A'):
+        alias_col = f'Aliases Interactor {interactor}'
+        alt_id_col = f'Alt IDs Interactor {interactor}'
+        
+        symbols = []
+        for _, row in df.iterrows():
+            row_symbols = set()
+            
+            if pd.notnull(row[alias_col]):
+                aliases = str(row[alias_col]).split('|')
+                for alias in aliases:
+                    if 'entrez gene/locuslink:' in alias.lower():
+                        gene = alias.split('(')[0].split(':')[-1].strip()
+                        row_symbols.add(gene)
+            
+            if pd.notnull(row[alt_id_col]):
+                alt_ids = str(row[alt_id_col]).split('|')
+                for alt_id in alt_ids:
+                    if 'entrez gene/locuslink:' in alt_id.lower():
+                        gene = alt_id.split('|')[0].split(':')[-1].strip()
+                        row_symbols.add(gene)
+            
+            symbols.append(list(row_symbols))
+        
+        return symbols
     
-    # Process each interaction
-    for _, row in bg.iterrows():
-        genes_a = extract_gene_symbols(row, 'A')
-        genes_b = extract_gene_symbols(row, 'B')
+    # Process both interactors at once
+    logger.info("Extracting gene symbols...")
+    genes_a = extract_gene_symbols_batch(bg, 'A')
+    genes_b = extract_gene_symbols_batch(bg, 'B')
+    
+    # Create edges more efficiently
+    edges = set()  # Use set for faster duplicate removal
+    logger.info("Creating edges...")
+    
+    for i in range(len(bg)):
+        for gene_a in genes_a[i]:
+            gene_a_upper = gene_a.upper()
+            if gene_a_upper in genes_list:
+                for gene_b in genes_b[i]:
+                    gene_b_upper = gene_b.upper()
+                    if gene_b_upper != gene_a_upper:
+                        edges.add((gene_a, gene_b))
         
-        # Check if any gene from A matches our genes of interest
-        for gene_a in genes_a:
-            if gene_a.upper() in genes_list:
-                for gene_b in genes_b:
-                    if gene_b.upper() != gene_a.upper():  # Avoid self-loops
-                        edges.append((gene_a, gene_b))
-        
-        # Check if any gene from B matches our genes of interest
-        for gene_b in genes_b:
-            if gene_b.upper() in genes_list:
-                for gene_a in genes_a:
-                    if gene_a.upper() != gene_b.upper():  # Avoid self-loops
-                        edges.append((gene_b, gene_a))
+        for gene_b in genes_b[i]:
+            gene_b_upper = gene_b.upper()
+            if gene_b_upper in genes_list:
+                for gene_a in genes_a[i]:
+                    gene_a_upper = gene_a.upper()
+                    if gene_a_upper != gene_b_upper:
+                        edges.add((gene_b, gene_a))
     
     logger.info(f"Found {len(edges)} potential interactions")
     
     # Convert to DataFrame
     if edges:
-        edgelist_biogrid = pd.DataFrame(edges, columns=['Gene', 'Gene1'])
+        edgelist_biogrid = pd.DataFrame(list(edges), columns=['Gene', 'Gene1'])
         
         # Count occurrences to filter by citation count
         edge_counts = edgelist_biogrid.groupby(['Gene', 'Gene1']).size().reset_index(name='count')
         edge_counts = edge_counts[edge_counts['count'] >= numcitations]
         
         # Create final edge list
-        edgelist_biogrid_final = edge_counts.drop(columns=['count'])
+        edgelist_biogrid_final = edge_counts[['Gene', 'Gene1']].copy()
         edgelist_biogrid_final['bg'] = 'yes'
         
         logger.info(f"Final interaction count: {len(edgelist_biogrid_final)}")
         return edgelist_biogrid_final
     else:
         return pd.DataFrame(columns=['Gene', 'Gene1', 'bg'])
+        
 
 @app.on_event("startup")
 async def startup_event():
@@ -208,10 +228,31 @@ async def get_status():
         "biogrid_file_rows": len(biogrid_df) if biogrid_df is not None else 0,
         "server_status": "running"
     }
-
+    
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.info(f"""
+    --- Incoming Request ---
+    Method: {request.method}
+    URL: {request.url}
+    Headers: {request.headers}
+    """)
+    
+    response = await call_next(request)
+    
+    logger.info(f"""
+    --- Outgoing Response ---
+    Status: {response.status_code}
+    Headers: {response.headers}
+    """)
+    
+    return response
+    
 @app.post("/upload/")
 async def process_network(genes_file: UploadFile = File(...)):
     global links_filtered, biogrid_df
+    logger.info("Upload endpoint called")
+    logger.info(f"Request headers: {genes_file.headers}")
     
     # Check if required files are loaded
     if links_filtered is None or biogrid_df is None:
