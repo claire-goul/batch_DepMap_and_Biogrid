@@ -18,7 +18,7 @@ app = FastAPI()
 
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "https://batchnetwork.netlify.app,http://localhost:3000"
+    "https://batchnetwork.netlify.app"
 ).split(",")
 
 # Initialize global variables
