@@ -16,9 +16,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS",
-    "https://batchnetwork.netlify.app")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://batchnetwork.netlify.app").split(',')
+
 
 # Initialize global variables
 links_filtered = None
@@ -27,12 +26,10 @@ biogrid_df = None
 # CORS configuration - make sure this is BEFORE any routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://batchnetwork.netlify.app"],
-    allow_origin_regex=None,
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=False,
-    expose_headers=[],
     max_age=600,
 )
 
