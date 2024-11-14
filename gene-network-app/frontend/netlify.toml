@@ -1,6 +1,7 @@
 [build]
-  command = "npm run build"
-  publish = "build"
+  base = "."
+  command = "cd frontend && npm install && npm run build"
+  publish = "frontend/build"
   functions = "netlify/edge-functions"
 
 [[redirects]]
