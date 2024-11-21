@@ -4,19 +4,16 @@ import { Input } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Move } from 'lucide-react';
+import ForceGraph2D from 'react-force-graph';
 
 const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
 const GeneNetworkVisualizer = () => {
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverStatus, setServerStatus] = useState(null);
-  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const svgRef = useRef(null);
+  const graphRef = useRef();
 
   useEffect(() => {
     checkServerStatus();
@@ -36,54 +33,57 @@ const GeneNetworkVisualizer = () => {
     }
   };
 
-const processFile = async (file) => {
-  if (!file) {
-    setError('Please upload a genes file');
-    return;
-  }
-
-  console.log('Processing file:', file.name);
-  setIsProcessing(true);
-  setError('');
-
-  try {
-    const formData = new FormData();
-    formData.append('genes_file', file);
-
-    console.log('Sending request to:', `${API_URL}/upload/`);
-    const response = await fetch(`${API_URL}/upload/`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Accept': 'application/json',
-      },
-      mode: 'cors',
-      credentials: 'omit'
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Server response:', errorText);
-      throw new Error(errorText || 'Network processing failed');
+  const processFile = async (file) => {
+    if (!file) {
+      setError('Please upload a genes file');
+      return;
     }
 
-    const networkData = await response.json();
-    console.log('Received network data:', networkData);
-      
-      // Create node positions in a circle
-      const radius = 200;
-      const centerX = 300;
-      const centerY = 250;
-      
-      const nodePositions = networkData.nodes.map((node, i) => ({
-        ...node,
-        x: centerX + radius * Math.cos((i / networkData.nodes.length) * 2 * Math.PI),
-        y: centerY + radius * Math.sin((i / networkData.nodes.length) * 2 * Math.PI),
-        labelOffset: { x: 0, y: 20 }
-      }));
+    console.log('Processing file:', file.name);
+    setIsProcessing(true);
+    setError('');
 
-      setNodes(nodePositions);
-      setEdges(networkData.edges);
+    try {
+      const formData = new FormData();
+      formData.append('genes_file', file);
+
+      console.log('Sending request to:', `${API_URL}/upload/`);
+      const response = await fetch(`${API_URL}/upload/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response:', errorText);
+        throw new Error(errorText || 'Network processing failed');
+      }
+
+      const networkData = await response.json();
+      console.log('Received network data:', networkData);
+      
+      // Convert to ForceGraph format
+      const graphData = {
+        nodes: networkData.nodes.map(node => ({
+          id: node.id,
+          isInterest: node.isInterest,
+          color: node.isInterest ? '#22c55e' : '#94a3b8'
+        })),
+        links: networkData.edges.map(edge => ({
+          source: edge.source,
+          target: edge.target,
+          value: edge.value,
+          isBiogrid: edge.isBiogrid,
+          color: edge.isBiogrid ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444')
+        }))
+      };
+
+      setGraphData(graphData);
 
     } catch (err) {
       console.error('Processing error:', err);
@@ -93,54 +93,19 @@ const processFile = async (file) => {
     }
   };
 
-  const handleWheel = (e) => {
-    e.preventDefault();
-    const delta = -e.deltaY;
-    const scaleChange = delta > 0 ? 1.1 : 0.9;
-    const newScale = Math.max(0.1, Math.min(5, transform.scale * scaleChange));
-    setTransform(prev => ({ ...prev, scale: newScale }));
+  const handleZoomIn = () => {
+    const currentZoom = graphRef.current.zoom();
+    graphRef.current.zoom(currentZoom * 1.2);
   };
 
-  const handleMouseDown = (e) => {
-    if (e.button === 0) {
-      setIsDragging(true);
-      setDragStart({
-        x: e.clientX - transform.x,
-        y: e.clientY - transform.y
-      });
-    }
+  const handleZoomOut = () => {
+    const currentZoom = graphRef.current.zoom();
+    graphRef.current.zoom(currentZoom / 1.2);
   };
 
-  const handleMouseMove = (e) => {
-    if (isDragging) {
-      setTransform(prev => ({
-        ...prev,
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
-      }));
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const zoomIn = () => {
-    setTransform(prev => ({
-      ...prev,
-      scale: Math.min(5, prev.scale * 1.2)
-    }));
-  };
-
-  const zoomOut = () => {
-    setTransform(prev => ({
-      ...prev,
-      scale: Math.max(0.1, prev.scale / 1.2)
-    }));
-  };
-
-  const resetView = () => {
-    setTransform({ x: 0, y: 0, scale: 1 });
+  const handleResetView = () => {
+    graphRef.current.centerAt();
+    graphRef.current.zoom(1);
   };
 
   return (
@@ -197,88 +162,62 @@ const processFile = async (file) => {
             </Alert>
           )}
 
-          {nodes.length > 0 && (
+          {graphData.nodes.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" onClick={zoomIn}>
+                <Button variant="outline" size="sm" onClick={handleZoomIn}>
                   <ZoomIn className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={zoomOut}>
+                <Button variant="outline" size="sm" onClick={handleZoomOut}>
                   <ZoomOut className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={resetView}>
+                <Button variant="outline" size="sm" onClick={handleResetView}>
                   Reset View
                 </Button>
                 <Move className="w-4 h-4 ml-2 text-gray-500" />
                 <span className="text-sm text-gray-500">Drag to pan</span>
               </div>
 
-              <div className="border rounded-lg overflow-hidden bg-white p-4">
-                <svg 
-                  width="600" 
-                  height="500" 
-                  className="w-full cursor-move"
-                  ref={svgRef}
-                  onWheel={handleWheel}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                >
-                  <g transform={`translate(${transform.x},${transform.y}) scale(${transform.scale})`}>
-                    {edges.map((edge, i) => {
-                      const sourceNode = nodes.find(n => n.id === edge.source);
-                      const targetNode = nodes.find(n => n.id === edge.target);
-                      if (sourceNode && targetNode) {
-                        return (
-                          <line
-                            key={`edge-${i}`}
-                            x1={sourceNode.x}
-                            y1={sourceNode.y}
-                            x2={targetNode.x}
-                            y2={targetNode.y}
-                            stroke={edge.isBiogrid ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444')}
-                            strokeWidth={edge.isBiogrid ? 1 : Math.abs(edge.value) * 2}
-                            opacity={0.6}
-                          />
-                        );
-                      }
-                      return null;
-                    })}
-                    
-                    {nodes.map((node, i) => (
-                      <g key={`node-${i}`}>
-                        <circle
-                          cx={node.x}
-                          cy={node.y}
-                          r={6}
-                          fill={node.isInterest ? '#22c55e' : '#94a3b8'}
-                          className="cursor-pointer hover:opacity-80"
-                        />
-                        <text
-                          x={node.x + node.labelOffset.x}
-                          y={node.y + node.labelOffset.y}
-                          textAnchor="middle"
-                          className="text-xs fill-current"
-                        >
-                          {node.id}
-                        </text>
-                      </g>
-                    ))}
-                  </g>
+              <div className="border rounded-lg overflow-hidden bg-white">
+                <ForceGraph2D
+                  ref={graphRef}
+                  graphData={graphData}
+                  nodeLabel="id"
+                  nodeColor="color"
+                  linkColor="color"
+                  linkWidth={link => link.isBiogrid ? 1 : Math.abs(link.value) * 2}
+                  linkOpacity={0.6}
+                  nodeRelSize={6}
+                  width={600}
+                  height={500}
+                  d3VelocityDecay={0.3}
+                  cooldownTime={2000}
+                />
 
-                  <g transform="translate(20, 420)">
-                    <rect width="240" height="70" fill="white" opacity="0.9"/>
-                    <circle cx="15" cy="15" r={6} fill="#22c55e"/>
-                    <text x="30" y="19" className="text-xs">Genes of Interest</text>
-                    <circle cx="15" cy="35" r={6} fill="#94a3b8"/>
-                    <text x="30" y="39" className="text-xs">Other Genes</text>
-                    <line x1="10" y1="55" x2="20" y2="55" stroke="#22c55e" strokeWidth="2"/>
-                    <text x="30" y="59" className="text-xs">Positive Correlation</text>
-                    <line x1="120" y1="55" x2="130" y2="55" stroke="#ef4444" strokeWidth="2"/>
-                    <text x="140" y="59" className="text-xs">Negative Correlation</text>
-                  </g>
-                </svg>
+                <div className="p-4 border-t">
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                      Genes of Interest
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
+                      Other Genes
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-1 bg-green-500 mr-2"></div>
+                      Positive Correlation
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-1 bg-red-500 mr-2"></div>
+                      Negative Correlation
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-1 bg-purple-500 mr-2"></div>
+                      BioGrid
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
