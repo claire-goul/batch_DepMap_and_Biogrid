@@ -1,6 +1,7 @@
 [build]
+  base = "gene-network-app/frontend"
   command = "npm run build"
-  publish = "build"
+  publish = "build"  # or "build" if you're using Create React App
 
 [[redirects]]
   from = "/*"
