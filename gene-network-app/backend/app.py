@@ -283,6 +283,15 @@ async def process_network(genes_file: UploadFile = File(...)):
             filters=['psi-mi:"MI:0915"(physical association)'],
             numcitations=2
         )
+        
+        # Log BioGrid edgelist
+        logger.info("BioGrid Edgelist:")
+        if not edgelist_biogrid.empty:
+            logger.info("\nBioGrid Edges:")
+            for _, row in edgelist_biogrid.iterrows():
+                logger.info(f"Gene: {row['Gene']} -> Gene1: {row['Gene1']} (BioGrid: {row['bg']})")
+        else:
+            logger.info("No BioGrid edges found")
 
         # Combine results
         corrwithbgforcorr = pd.merge(
