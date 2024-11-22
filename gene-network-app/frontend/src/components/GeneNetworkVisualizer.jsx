@@ -77,22 +77,11 @@ const GeneNetworkVisualizer = () => {
           size: node.isInterest ? 16 : 14
         }
       }));
-      
-      // Debug BioGrid edges
-      console.log('Edge data sample:', data.edges.slice(0, 5));
-      
+
       const edges = data.edges.map((edge, index) => {
-        // Debug each edge's BioGrid status
-        console.log(`Edge ${index}:`, {
-          source: edge.source,
-          target: edge.target,
-          isBiogrid: edge.isBiogrid,
-          bg: edge.bg, // Check if it's using 'bg' instead of 'isBiogrid'
-          value: edge.value
-        });
-
-        const isBiogridEdge = edge.isBiogrid === true || edge.bg === 'yes';
-
+        // Check if the value is a number for correlation edges
+        const hasCorrelation = typeof edge.value === 'number';
+        
         return {
           id: index,
           from: edge.source,
@@ -102,12 +91,12 @@ const GeneNetworkVisualizer = () => {
             highlight: edge.isBiogrid ? '#f87171' : (hasCorrelation ? (edge.value >= 0 ? '#4ade80' : '#94a3b8') : '#cbd5e1'),
             opacity: 0.8
           },
-          width: isBiogridEdge ? 2 : Math.max(1, Math.abs(edge.value) * 3),
+          width: edge.isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1),
           smooth: {
             type: 'dynamic',
             roundness: 0.5
           },
-          length: isBiogridEdge ? 200 : Math.max(150, (1 - Math.abs(edge.value)) * 300)
+          length: edge.isBiogrid ? 200 : (hasCorrelation ? Math.max(150, (1 - Math.abs(edge.value)) * 300) : 200)
         };
       });
 
