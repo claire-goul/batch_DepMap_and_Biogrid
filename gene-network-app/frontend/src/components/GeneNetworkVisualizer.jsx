@@ -68,16 +68,33 @@ const GeneNetworkVisualizer = () => {
       const nodes = data.nodes.map(node => ({
         id: node.id,
         label: node.id,
-        color: node.isInterest ? '#22c55e' : '#94a3b8',
-        size: 20
+        color: {
+          background: node.isInterest ? '#22c55e' : '#94a3b8',
+          border: node.isInterest ? '#15803d' : '#64748b',
+          highlight: {
+            background: node.isInterest ? '#4ade80' : '#cbd5e1',
+            border: node.isInterest ? '#15803d' : '#64748b'
+          }
+        },
+        size: node.isInterest ? 25 : 20,
+        font: {
+          size: node.isInterest ? 16 : 14
+        }
       }));
 
       const edges = data.edges.map((edge, index) => ({
         id: index,
         from: edge.source,
         to: edge.target,
-        color: edge.isBiogrid ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444'),
-        width: edge.isBiogrid ? 1 : Math.abs(edge.value) * 2,
+        color: {
+          color: edge.isBiogrid ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444'),
+          highlight: edge.isBiogrid ? '#a855f7' : (edge.value >= 0 ? '#4ade80' : '#f87171'),
+          opacity: 0.8
+        },
+        width: edge.isBiogrid ? 2 : Math.max(1, Math.abs(edge.value) * 3),
+        smooth: {
+          type: 'dynamic',
+          roundness: 0.5
       }));
 
       setNetworkData({ nodes, edges });
@@ -93,34 +110,50 @@ const GeneNetworkVisualizer = () => {
   const options = {
     nodes: {
       shape: 'dot',
-      size: 16,
+      size: 20,
       font: {
-        size: 12
+        size: 14
       },
       borderWidth: 1,
       borderWidthSelected: 2
     },
     edges: {
+      width: 2,
       smooth: {
-        type: 'continuous'
+        type: 'dynamic',
+        roundness: 0.5
       }
     },
     physics: {
-      stabilization: {
-        iterations: 100
+      enabled: true,
+      forceAtlas2Based: {
+        gravitationalConstant: -50,
+        centralGravity: 0.01,
+        springLength: 100,
+        springConstant: 0.08,
+        damping: 0.4,
+        avoidOverlap: 1.5
       },
-      barnesHut: {
-        gravitationalConstant: -2000,
-        centralGravity: 0.3,
-        springLength: 95,
-        springConstant: 0.04,
-        damping: 0.09
-      }
+      solver: 'forceAtlas2Based',
+      stabilization: {
+        enabled: true,
+        iterations: 1000,
+        updateInterval: 25,
+        fit: true
+      },
+      adaptiveTimestep: true,
+      timestep: 0.5,
+      minVelocity: 0.75
+    },
+    layout: {
+      improvedLayout: true,
+      randomSeed: 42  // Consistent initial layout
     },
     interaction: {
       hover: true,
       zoomView: true,
       dragView: true,
+      dragNodes: true,
       multiselect: true
     },
     height: '500px'
