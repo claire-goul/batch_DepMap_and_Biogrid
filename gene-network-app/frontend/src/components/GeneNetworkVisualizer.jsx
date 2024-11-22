@@ -71,10 +71,6 @@ const GeneNetworkVisualizer = () => {
         color: {
           background: node.isInterest ? '#22c55e' : '#94a3b8',
           border: node.isInterest ? '#15803d' : '#64748b',
-          highlight: {
-            background: node.isInterest ? '#4ade80' : '#cbd5e1',
-            border: node.isInterest ? '#15803d' : '#64748b'
-          }
         },
         size: node.isInterest ? 25 : 20,
         font: {
@@ -82,6 +78,7 @@ const GeneNetworkVisualizer = () => {
         }
       }));
       
+      // Debug BioGrid edges
       console.log('Edge data sample:', data.edges.slice(0, 5));
       
       const edges = data.edges.map((edge, index) => {
@@ -101,8 +98,8 @@ const GeneNetworkVisualizer = () => {
           from: edge.source,
           to: edge.target,
           color: {
-            color: isBiogridEdge ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444'),
-            highlight: isBiogridEdge ? '#a855f7' : (edge.value >= 0 ? '#4ade80' : '#f87171'),
+            color: edge.isBiogrid ? '#ef4444' : (hasCorrelation ? (edge.value >= 0 ? '#22c55e' : '#64748b') : '#94a3b8'),
+            highlight: edge.isBiogrid ? '#f87171' : (hasCorrelation ? (edge.value >= 0 ? '#4ade80' : '#94a3b8') : '#cbd5e1'),
             opacity: 0.8
           },
           width: isBiogridEdge ? 2 : Math.max(1, Math.abs(edge.value) * 3),
@@ -265,11 +262,11 @@ const GeneNetworkVisualizer = () => {
                       Positive Correlation
                     </div>
                     <div className="flex items-center">
-                      <div className="w-3 h-1 bg-red-500 mr-2"></div>
+                      <div className="w-3 h-1 bg-gray-500 mr-2"></div>
                       Negative Correlation
                     </div>
                     <div className="flex items-center">
-                      <div className="w-3 h-1 bg-purple-500 mr-2"></div>
+                      <div className="w-3 h-1 bg-red-500 mr-2"></div>
                       BioGrid
                     </div>
                   </div>
