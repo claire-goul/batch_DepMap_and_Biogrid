@@ -3,8 +3,6 @@ import Graph from 'react-graph-vis';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
-import { Button } from './ui/button';
-import { ZoomIn, ZoomOut, Move } from 'lucide-react';
 
 const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
@@ -13,7 +11,6 @@ const GeneNetworkVisualizer = () => {
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverStatus, setServerStatus] = useState(null);
-  const [network, setNetwork] = useState(null);
 
   useEffect(() => {
     checkServerStatus();
@@ -131,7 +128,8 @@ const GeneNetworkVisualizer = () => {
 
   const events = {
     select: function(event) {
-      const { nodes, edges } = event;
+      // Handler for node/edge selection
+      console.log('Selected elements:', event);
     }
   };
 
