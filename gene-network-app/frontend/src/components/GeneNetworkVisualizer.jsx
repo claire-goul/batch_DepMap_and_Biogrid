@@ -64,22 +64,19 @@ const GeneNetworkVisualizer = () => {
       const data = await response.json();
       console.log('Received network data:', data);
 
-      // Convert data to vis-network format with enhanced node sizing
       const nodes = data.nodes.map(node => ({
         id: node.id,
         label: node.id,
-        color: {
-          background: node.isInterest ? '#22c55e' : '#94a3b8',
-          border: node.isInterest ? '#15803d' : '#64748b',
-        },
+        color: node.isInterest ? '#22c55e' : '#94a3b8',  // Simplified color without border
         size: node.isInterest ? 25 : 20,
         font: {
-          size: node.isInterest ? 16 : 14
-        }
+          size: node.isInterest ? 16 : 14,
+          color: '#333333'
+        },
+        borderWidth: 0  // Remove border
       }));
 
       const edges = data.edges.map((edge, index) => {
-        // Check if the value is a number for correlation edges
         const hasCorrelation = typeof edge.value === 'number';
         
         return {
@@ -87,16 +84,16 @@ const GeneNetworkVisualizer = () => {
           from: edge.source,
           to: edge.target,
           color: {
-            color: edge.isBiogrid ? '#ef4444' : (hasCorrelation ? (edge.value >= 0 ? '#22c55e' : '#64748b') : '#94a3b8'),
-            highlight: edge.isBiogrid ? '#f87171' : (hasCorrelation ? (edge.value >= 0 ? '#4ade80' : '#94a3b8') : '#cbd5e1'),
+            color: edge.isBiogrid ? '#ef4444' : '#94a3b8',
+            highlight: edge.isBiogrid ? '#f87171' : '#cbd5e1',
             opacity: 0.8
           },
           width: edge.isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1),
-          smooth: {
-            type: 'dynamic',
-            roundness: 0.5
-          },
-          length: edge.isBiogrid ? 200 : (hasCorrelation ? Math.max(150, (1 - Math.abs(edge.value)) * 300) : 200)
+          smooth: false,
+          arrows: {
+            to: false,
+            from: false
+          }
         };
       });
 
@@ -114,23 +111,24 @@ const GeneNetworkVisualizer = () => {
     nodes: {
       shape: 'dot',
       size: 20,
+      borderWidth: 0,  // Remove borders
+      shadow: false,   // Remove shadows
       font: {
-        size: 14,
+        size: 16,
         color: '#333333'
-      },
-      borderWidth: 2,
-      shadow: true
+      }
     },
     edges: {
       width: 2,
-      smooth: {
-        type: 'dynamic',
-        roundness: 0.5
-      },
-      shadow: true
+      smooth: false,
+      shadow: false,  // Remove shadows
+      arrows: {
+        to: false,
+        from: false
+      }
     },
     physics: {
-      enabled: true,
+      enabled: false,
       forceAtlas2Based: {
         gravitationalConstant: -50,
         centralGravity: 0.01,
@@ -166,7 +164,6 @@ const GeneNetworkVisualizer = () => {
 
   const events = {
     select: function(event) {
-      // Handler for node/edge selection
       console.log('Selected elements:', event);
     }
   };
@@ -247,16 +244,12 @@ const GeneNetworkVisualizer = () => {
                       Other Genes
                     </div>
                     <div className="flex items-center">
-                      <div className="w-3 h-1 bg-green-500 mr-2"></div>
-                      Positive Correlation
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-1 bg-gray-500 mr-2"></div>
-                      Negative Correlation
+                      <div className="w-3 h-1 bg-gray-400 mr-2"></div>
+                      Correlation Edge
                     </div>
                     <div className="flex items-center">
                       <div className="w-3 h-1 bg-red-500 mr-2"></div>
-                      BioGrid
+                      BioGrid Edge
                     </div>
                   </div>
                 </div>
