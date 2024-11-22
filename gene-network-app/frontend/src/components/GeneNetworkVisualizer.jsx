@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Network } from 'vis-network-react';
+import Graph from 'react-graph-vis';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
