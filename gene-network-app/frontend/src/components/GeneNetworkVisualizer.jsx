@@ -81,23 +81,38 @@ const GeneNetworkVisualizer = () => {
           size: node.isInterest ? 16 : 14
         }
       }));
+      
+      console.log('Edge data sample:', data.edges.slice(0, 5));
+      
+      const edges = data.edges.map((edge, index) => {
+        // Debug each edge's BioGrid status
+        console.log(`Edge ${index}:`, {
+          source: edge.source,
+          target: edge.target,
+          isBiogrid: edge.isBiogrid,
+          bg: edge.bg, // Check if it's using 'bg' instead of 'isBiogrid'
+          value: edge.value
+        });
 
-      const edges = data.edges.map((edge, index) => ({
-        id: index,
-        from: edge.source,
-        to: edge.target,
-        color: {
-          color: edge.isBiogrid ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444'),
-          highlight: edge.isBiogrid ? '#a855f7' : (edge.value >= 0 ? '#4ade80' : '#f87171'),
-          opacity: 0.8
-        },
-        width: edge.isBiogrid ? 2 : Math.max(1, Math.abs(edge.value) * 3),
-        smooth: {
-          type: 'dynamic',
-          roundness: 0.5
-        },
-        length: edge.isBiogrid ? 200 : Math.max(150, (1 - Math.abs(edge.value)) * 300)
-      }));
+        const isBiogridEdge = edge.isBiogrid === true || edge.bg === 'yes';
+
+        return {
+          id: index,
+          from: edge.source,
+          to: edge.target,
+          color: {
+            color: isBiogridEdge ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444'),
+            highlight: isBiogridEdge ? '#a855f7' : (edge.value >= 0 ? '#4ade80' : '#f87171'),
+            opacity: 0.8
+          },
+          width: isBiogridEdge ? 2 : Math.max(1, Math.abs(edge.value) * 3),
+          smooth: {
+            type: 'dynamic',
+            roundness: 0.5
+          },
+          length: isBiogridEdge ? 200 : Math.max(150, (1 - Math.abs(edge.value)) * 300)
+        };
+      });
 
       setNetworkData({ nodes, edges });
 
