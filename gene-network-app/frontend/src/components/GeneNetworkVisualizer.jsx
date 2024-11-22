@@ -64,7 +64,7 @@ const GeneNetworkVisualizer = () => {
       const data = await response.json();
       console.log('Received network data:', data);
 
-      // Convert data to vis-network format
+      // Convert data to vis-network format with enhanced node sizing
       const nodes = data.nodes.map(node => ({
         id: node.id,
         label: node.id,
@@ -95,6 +95,8 @@ const GeneNetworkVisualizer = () => {
         smooth: {
           type: 'dynamic',
           roundness: 0.5
+        },
+        length: edge.isBiogrid ? 200 : Math.max(150, (1 - Math.abs(edge.value)) * 300)
       }));
 
       setNetworkData({ nodes, edges });
@@ -112,17 +114,19 @@ const GeneNetworkVisualizer = () => {
       shape: 'dot',
       size: 20,
       font: {
-        size: 14
+        size: 14,
+        color: '#333333'
       },
-      borderWidth: 1,
-      borderWidthSelected: 2
+      borderWidth: 2,
+      shadow: true
     },
     edges: {
       width: 2,
       smooth: {
         type: 'dynamic',
         roundness: 0.5
-      }
+      },
+      shadow: true
     },
     physics: {
       enabled: true,
@@ -147,7 +151,7 @@ const GeneNetworkVisualizer = () => {
     },
     layout: {
       improvedLayout: true,
-      randomSeed: 42  // Consistent initial layout
+      randomSeed: 42
     },
     interaction: {
       hover: true,
