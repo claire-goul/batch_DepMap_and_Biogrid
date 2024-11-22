@@ -75,12 +75,12 @@ const GeneNetworkVisualizer = () => {
         size: 20
       }));
 
-      const edges = data.edges.map(edge => ({
+      const edges = data.edges.map((edge, index) => ({
+        id: index,
         from: edge.source,
         to: edge.target,
         color: edge.isBiogrid ? '#9333ea' : (edge.value >= 0 ? '#22c55e' : '#ef4444'),
         width: edge.isBiogrid ? 1 : Math.abs(edge.value) * 2,
-        smooth: { type: 'continuous' }
       }));
 
       setNetworkData({ nodes, edges });
@@ -96,14 +96,14 @@ const GeneNetworkVisualizer = () => {
   const options = {
     nodes: {
       shape: 'dot',
-      borderWidth: 1,
-      borderWidthSelected: 2,
+      size: 16,
       font: {
         size: 12
-      }
+      },
+      borderWidth: 1,
+      borderWidthSelected: 2
     },
     edges: {
-      width: 1,
       smooth: {
         type: 'continuous'
       }
@@ -123,27 +123,15 @@ const GeneNetworkVisualizer = () => {
     interaction: {
       hover: true,
       zoomView: true,
-      dragView: true
-    }
+      dragView: true,
+      multiselect: true
+    },
+    height: '500px'
   };
 
-  const handleZoomIn = () => {
-    if (network) {
-      const scale = network.getScale() * 1.2;
-      network.moveTo({ scale: scale });
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (network) {
-      const scale = network.getScale() / 1.2;
-      network.moveTo({ scale: scale });
-    }
-  };
-
-  const handleResetView = () => {
-    if (network) {
-      network.fit();
+  const events = {
+    select: function(event) {
+      const { nodes, edges } = event;
     }
   };
 
@@ -154,7 +142,6 @@ const GeneNetworkVisualizer = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Server Status Alerts */}
           {serverStatus ? (
             <div className="space-y-2 mb-4">
               <Alert variant={serverStatus.links_file_loaded ? "default" : "destructive"}>
@@ -180,7 +167,6 @@ const GeneNetworkVisualizer = () => {
             </Alert>
           )}
 
-          {/* File Upload */}
           <div>
             <h3 className="text-sm font-medium mb-2">Upload Genes of Interest File (.xlsx)</h3>
             <Input
@@ -197,36 +183,20 @@ const GeneNetworkVisualizer = () => {
             {isProcessing && <div className="mt-2">Processing file...</div>}
           </div>
 
-          {/* Error Display */}
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          {/* Network Visualization */}
           {networkData && (
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" onClick={handleZoomIn}>
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleZoomOut}>
-                  <ZoomOut className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleResetView}>
-                  Reset View
-                </Button>
-                <Move className="w-4 h-4 ml-2 text-gray-500" />
-                <span className="text-sm text-gray-500">Drag to pan</span>
-              </div>
-
               <div className="border rounded-lg overflow-hidden bg-white">
                 <div style={{ height: '500px' }}>
-                  <Network
-                    getNetwork={setNetwork}
-                    data={networkData}
+                  <Graph
+                    graph={networkData}
                     options={options}
+                    events={events}
                   />
                 </div>
 
