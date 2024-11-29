@@ -123,7 +123,8 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
                     gene_a_upper = gene_a.upper()
                     if gene_a_upper != gene_b_upper:
                         edges.add((gene_b, gene_a))
-    
+                        
+    logger.info(f"Edges found: {edges}")
     logger.info(f"Found {len(edges)} potential interactions")
     
     # Convert to DataFrame
