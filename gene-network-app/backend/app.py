@@ -86,31 +86,26 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     genes_list = set(genes['Gene'].str.upper())
     logger.info(f"Processing {len(genes_list)} genes")
     
-    def extract_gene_symbols_batch(df, interactor='A'):
+    def extract_gene_symbols_batch(df, interactor):
         alias_col = f'Aliases Interactor {interactor}'
         alt_id_col = f'Alt IDs Interactor {interactor}'
-        
         symbols = []
         for _, row in df.iterrows():
             row_symbols = set()  # Using set here for unique symbols
-            
             if pd.notnull(row[alias_col]):
                 aliases = str(row[alias_col]).split('|')
                 for alias in aliases:
                     if 'entrez gene/locuslink:' in alias.lower():
                         gene = alias.split('(')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
-            
             if pd.notnull(row[alt_id_col]):
                 alt_ids = str(row[alt_id_col]).split('|')
                 for alt_id in alt_ids:
                     if 'entrez gene/locuslink:' in alt_id.lower():
                         gene = alt_id.split('|')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
-            
             # Convert set to list before appending
             symbols.append(list(row_symbols) if row_symbols else [])
-        
         return symbols
     
     logger.info("Extracting gene symbols...")
