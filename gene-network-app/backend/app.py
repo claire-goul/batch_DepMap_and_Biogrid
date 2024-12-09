@@ -108,7 +108,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
                         gene = alt_id.split('|')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
             
-            symbols.add(list(row_symbols))
+            symbols.append(list(row_symbols))
         
         return symbols
     
