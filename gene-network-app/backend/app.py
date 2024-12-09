@@ -116,7 +116,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     genes_a = extract_gene_symbols_batch(bg, 'A')
     genes_b = extract_gene_symbols_batch(bg, 'B')
     
-    edges = set()
+    edges = []
     logger.info("Creating edges...")
     
     for i in range(len(bg)):
