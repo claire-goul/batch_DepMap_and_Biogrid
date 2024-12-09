@@ -92,7 +92,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
         
         symbols = []
         for _, row in df.iterrows():
-            row_symbols = set()
+            row_symbols = set()  # Using set here for unique symbols
             
             if pd.notnull(row[alias_col]):
                 aliases = str(row[alias_col]).split('|')
@@ -108,7 +108,8 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
                         gene = alt_id.split('|')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
             
-            symbols.append(list(row_symbols))
+            # Convert set to list before appending
+            symbols.append(list(row_symbols) if row_symbols else [])
         
         return symbols
     
@@ -120,24 +121,24 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     logger.info("Creating edges...")
     
     for i in range(len(genes_a)):
+        # Skip if either gene list is empty
+        if not genes_a[i] or not genes_b[i]:
+            continue
         for gene_a in genes_a[i]:
             if gene_a in genes_list:
-                gene_b = genes_b[i][0]
-            for gene_b in genes_b[i]:
-                if gene_b != gene_a:
-                    edges.append((gene_a, gene_b))
+                for gene_b in genes_b[i]:
+                    if gene_b != gene_a:
+                        edges.append((gene_a, gene_b))
         for gene_b in genes_b[i]:
             if gene_b in genes_list:
-                gene_a=genes_a[i][0]
                 for gene_a in genes_a[i]:
-                    if gene_a != gene_b:
+                    if gene_a != gene_b and (gene_b, gene_a) not in edges:
                         edges.append((gene_b, gene_a))
     
     logger.info(f"Found {len(edges)} potential interactions")
-    logger.info(f"Found {edges}")
     
     if edges:
-        edgelist_biogrid = pd.DataFrame(list(edges), columns=['Gene', 'Gene1'])
+        edgelist_biogrid = pd.DataFrame(edges, columns=['Gene', 'Gene1'])
         
         # Count occurrences to filter by citation count
         edge_counts = edgelist_biogrid.groupby(['Gene', 'Gene1']).size().reset_index(name='count')
@@ -145,7 +146,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
         
         # Create final edge list
         edgelist_biogrid_final = edge_counts[['Gene', 'Gene1']].copy()
-        edgelist_biogrid_final['bg'] = True  # Changed to boolean
+        edgelist_biogrid_final['bg'] = True
         
         logger.info(f"Final BioGrid interactions: {len(edgelist_biogrid_final)}")
         log_dataframe_info(edgelist_biogrid_final, "BioGrid")
@@ -153,7 +154,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     else:
         logger.warning("No BioGrid edges found")
         return pd.DataFrame(columns=['Gene', 'Gene1', 'bg'])
-
+        
 @app.on_event("startup")
 async def startup_event():
     """Load the large files when the server starts"""
