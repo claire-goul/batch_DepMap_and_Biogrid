@@ -119,21 +119,18 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     edges = []
     logger.info("Creating edges...")
     
-    for i in range(len(bg)):
+    for i in range(len(genes_a)):
         for gene_a in genes_a[i]:
-            gene_a_upper = gene_a.upper()
-            if gene_a_upper in genes_list:
-                for gene_b in genes_b[i]:
-                    gene_b_upper = gene_b.upper()
-                    if gene_b_upper != gene_a_upper:
-                        edges.append((gene_a, gene_b))
-        
+            if gene_a in genes_list:
+                gene_b = genes_b[i][0]
+            for gene_b in genes_b[i]:
+                if gene_b != gene_a:
+                    edges.append((gene_a, gene_b))
         for gene_b in genes_b[i]:
-            gene_b_upper = gene_b.upper()
-            if gene_b_upper in genes_list:
+            if gene_b in genes_list:
+                gene_a=genes_a[i][0]
                 for gene_a in genes_a[i]:
-                    gene_a_upper = gene_a.upper()
-                    if gene_a_upper != gene_b_upper:
+                    if gene_a != gene_b:
                         edges.append((gene_b, gene_a))
     
     logger.info(f"Found {len(edges)} potential interactions")
