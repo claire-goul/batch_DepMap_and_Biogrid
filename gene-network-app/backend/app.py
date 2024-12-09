@@ -116,9 +116,6 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     logger.info("Creating edges...")
     
     for i in range(len(genes_a)):
-        # Skip if either gene list is empty
-        if not genes_a[i] or not genes_b[i]:
-            continue
         for gene_a in genes_a[i]:
             if gene_a in genes_list:
                 for gene_b in genes_b[i]:
