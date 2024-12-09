@@ -92,7 +92,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
         
         symbols = []
         for _, row in df.iterrows():
-            row_symbols = {}
+            row_symbols = set()
             
             if pd.notnull(row[alias_col]):
                 aliases = str(row[alias_col]).split('|')
