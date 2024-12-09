@@ -161,7 +161,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     edgelist_biogrid_final = edgelist_biogrid.drop(edgelist_biogrid[edgelist_biogrid.Gene==edgelist_biogrid.Gene1].index)
     edgelist_biogrid_final=edgelist_biogrid_final.drop(columns=['index'])
     edgelist_biogrid_final=edgelist_biogrid_final.reset_index()
-    edgelist_biogrid_final['bg']='yes'
+    edgelist_biogrid_final['bg']=True
     return edgelist_biogrid_final
 
 
