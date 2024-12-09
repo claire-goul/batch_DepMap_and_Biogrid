@@ -99,14 +99,14 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
                 for alias in aliases:
                     if 'entrez gene/locuslink:' in alias.lower():
                         gene = alias.split('(')[0].split(':')[-1].strip()
-                        row_symbols.add(gene)
+                        row_symbols.append(gene)
             
             if pd.notnull(row[alt_id_col]):
                 alt_ids = str(row[alt_id_col]).split('|')
                 for alt_id in alt_ids:
                     if 'entrez gene/locuslink:' in alt_id.lower():
                         gene = alt_id.split('|')[0].split(':')[-1].strip()
-                        row_symbols.add(gene)
+                        row_symbols.append(gene)
             
             symbols.append(list(row_symbols))
         
