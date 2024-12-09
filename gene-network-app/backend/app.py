@@ -237,10 +237,8 @@ async def process_network(genes_file: UploadFile = File(...)):
         corrwithbgforcorr = pd.merge(
             corr, 
             edgelist_biogrid,
-            how='outer',  # Changed to outer merge to keep all edges
-            on=['Gene', 'Gene1'],
-            indicator=True
-        )
+            how='left',  # Changed to outer merge to keep all edges
+            left_on=['Gene', 'Gene1'], right_on=['Gene','Gene1'])
         
         # Log merge results
         logger.info(f"Merge results: {corrwithbgforcorr['_merge'].value_counts().to_dict()}")
