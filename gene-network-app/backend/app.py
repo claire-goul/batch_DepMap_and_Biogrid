@@ -137,7 +137,7 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
                         edges.add((gene_b, gene_a))
     
     logger.info(f"Found {len(edges)} potential interactions")
-    logger.info(f"Found" edges")
+    logger.info(f"Found {edges}")
     
     if edges:
         edgelist_biogrid = pd.DataFrame(list(edges), columns=['Gene', 'Gene1'])
