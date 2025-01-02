@@ -240,7 +240,6 @@ async def process_network(genes_file: UploadFile = File(...)):
             on=['Gene', 'Gene1'])
         
         # Log merge results
-        #logger.info(f"Merge results: {corrwithbgforcorr['_merge'].value_counts().to_dict()}")
         log_dataframe_info(corrwithbgforcorr, "Merged Results")
 
         # Create network data
