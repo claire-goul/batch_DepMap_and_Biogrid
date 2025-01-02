@@ -236,8 +236,8 @@ async def process_network(genes_file: UploadFile = File(...)):
         logger.info("Merging correlation and BioGrid data...")
         corrwithbgforcorr = pd.merge(
             corr, 
-            edgelist_biogrid,
-            on=['Gene', 'Gene1'])
+            edgelist_biogrid, how='left',
+            left_on=['Gene', 'Gene1'],right_on=['Gene', 'Gene1'])
         
         # Log merge results
         log_dataframe_info(corrwithbgforcorr, "Merged Results")
