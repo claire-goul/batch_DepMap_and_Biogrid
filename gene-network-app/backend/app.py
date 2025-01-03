@@ -213,7 +213,6 @@ async def process_network(genes_file: UploadFile = File(...)):
         # Read the genes file
         genes_df = pd.read_excel(io.BytesIO(await genes_file.read()), engine='openpyxl')
         logger.info(f"Processing {len(genes_df)} genes")
-        log_dataframe_info(genes_df, "Input Genes")
 
         # Get correlations
         corr = get_correlations_edgelist(
@@ -223,6 +222,10 @@ async def process_network(genes_file: UploadFile = File(...)):
             corrpos=True,
             num=3
         )
+        # Add bg column to correlations with False
+        corr['bg'] = False
+        logger.info(f"Correlation edges shape: {corr.shape}")
+        logger.info(f"Sample correlations:\n{corr.head()}")
 
         # Get BioGrid edges
         edgelist_biogrid = get_biogrid_edgelist(
@@ -231,38 +234,26 @@ async def process_network(genes_file: UploadFile = File(...)):
             filters=['psi-mi:"MI:0915"(physical association)'],
             numcitations=2
         )
+        logger.info(f"BioGrid edges shape: {edgelist_biogrid.shape}")
+        logger.info(f"Sample BioGrid edges:\n{edgelist_biogrid.head()}")
 
-        # Merge results
-        logger.info("Merging correlation and BioGrid data...")
-        corrwithbgforcorr = pd.merge(
-            corr, 
-            edgelist_biogrid, how='left',
-            on=['Gene', 'Gene1'])
+        # Combine edges from both sources
+        all_edges = pd.concat([corr, edgelist_biogrid], ignore_index=True)
+        logger.info(f"Combined edges shape: {all_edges.shape}")
+        logger.info(f"Sample combined edges:\n{all_edges.head()}")
         
-        # Log merge results
-        log_dataframe_info(corrwithbgforcorr, "Merged Results")
+        # Create unique node list
+        unique_nodes = set(all_edges['Gene'].unique()) | set(all_edges['Gene1'].unique())
+        logger.info(f"Found {len(unique_nodes)} unique nodes")
 
         # Create network data
         network_data = {
-            "nodes": [],
+            "nodes": [{"id": node, "isInterest": node in genes_df['Gene'].tolist()} for node in unique_nodes],
             "edges": []
         }
 
-        # Create unique node list
-        unique_nodes = set()
-        for _, row in corrwithbgforcorr.iterrows():
-            unique_nodes.add(row['Gene'])
-            unique_nodes.add(row['Gene1'])
-
-        # Add nodes
-        genes_list = set(genes_df['Gene'].tolist())
-        network_data["nodes"] = [
-            {"id": node, "isInterest": node in genes_list}
-            for node in unique_nodes
-        ]
-
-        # Add edges
-        for _, row in corrwithbgforcorr.iterrows():
+        # Create edges with explicit type handling
+        for _, row in all_edges.iterrows():
             edge = {
                 "source": row['Gene'],
                 "target": row['Gene1'],
@@ -271,13 +262,17 @@ async def process_network(genes_file: UploadFile = File(...)):
             }
             network_data["edges"].append(edge)
 
-        # Log network statistics
+        # Log final statistics
+        biogrid_count = sum(1 for e in network_data["edges"] if e["isBiogrid"])
         logger.info(f"Network statistics:")
         logger.info(f"Total nodes: {len(network_data['nodes'])}")
         logger.info(f"Total edges: {len(network_data['edges'])}")
-        logger.info(f"Edges: {network_data['edges']}")
-        logger.info(f"BioGrid edges: {sum(1 for e in network_data['edges'] if e['isBiogrid'])}")
-        logger.info(f"Sample edges:\n{json.dumps(network_data['edges'][:5], indent=2)}")
+        logger.info(f"BioGrid edges: {biogrid_count}")
+        
+        # Log sample edges for verification
+        logger.info("Sample network edges:")
+        for edge in network_data['edges'][:5]:
+            logger.info(json.dumps(edge))
 
         return network_data
 
