@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
@@ -79,7 +78,28 @@ const GeneNetworkVisualizer = () => {
 
       console.log('Debug statistics:', debugStats);
       setDebugInfo(debugStats);
-      setNetworkData(data);
+
+      // Process network data for visualization
+      const nodes = data.nodes.map(node => ({
+        id: node.id,
+        label: node.id,
+        color: node.isInterest ? '#22c55e' : '#94a3b8',
+        size: node.isInterest ? 25 : 20
+      }));
+
+      const edges = data.edges.map((edge, index) => {
+        const hasCorrelation = typeof edge.value === 'number';
+        
+        return {
+          id: index,
+          from: edge.source,
+          to: edge.target,
+          color: edge.isBiogrid ? '#ef4444' : '#94a3b8',
+          width: edge.isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1)
+        };
+      });
+
+      setNetworkData({ nodes, edges });
 
     } catch (err) {
       console.error('Processing error:', err);
@@ -198,11 +218,11 @@ const GeneNetworkVisualizer = () => {
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className="flex items-center">
                   <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                  <span>Genes of Interest ({networkData.nodes.filter(n => n.isInterest).length})</span>
+                  <span>Genes of Interest ({networkData.nodes.filter(n => n.color === '#22c55e').length})</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
-                  <span>Other Genes ({networkData.nodes.filter(n => !n.isInterest).length})</span>
+                  <span>Other Genes ({networkData.nodes.filter(n => n.color === '#94a3b8').length})</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-3 h-1 bg-gray-400 mr-2"></div>
