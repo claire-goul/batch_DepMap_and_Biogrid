@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Graph from 'react-graph-vis';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Input } from './ui/input';
+import { Alert, AlertDescription } from './ui/alert';
 
 const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
@@ -11,7 +11,6 @@ const GeneNetworkVisualizer = () => {
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverStatus, setServerStatus] = useState(null);
-  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
     checkServerStatus();
@@ -65,54 +64,31 @@ const GeneNetworkVisualizer = () => {
       const data = await response.json();
       console.log('Received network data:', data);
 
-      // Debug information about edges
-      const debugStats = {
-        totalEdges: data.edges.length,
-        biogridEdges: data.edges.filter(e => e.isBiogrid).length,
-        sampleEdges: data.edges.slice(0, 5).map(e => ({
-          source: e.source,
-          target: e.target,
-          isBiogrid: e.isBiogrid,
-          value: e.value
-        }))
-      };
-      console.log('Edge statistics:', debugStats);
-      setDebugInfo(debugStats);
-
       const nodes = data.nodes.map(node => ({
         id: node.id,
         label: node.id,
-        color: node.isInterest ? '#22c55e' : '#94a3b8',
+        color: node.isInterest ? '#22c55e' : '#94a3b8',  // Simplified color without border
         size: node.isInterest ? 25 : 20,
         font: {
           size: node.isInterest ? 16 : 14,
           color: '#333333'
         },
-        borderWidth: 0
+        borderWidth: 0  // Remove border
       }));
 
       const edges = data.edges.map((edge, index) => {
         const hasCorrelation = typeof edge.value === 'number';
-        const isBiogrid = Boolean(edge.isBiogrid); // Explicit boolean conversion
-        
-        console.log(`Processing edge ${index}:`, {
-          from: edge.source,
-          to: edge.target,
-          isBiogrid: edge.isBiogrid,
-          value: edge.value,
-          convertedBiogrid: isBiogrid
-        });
-        
+        const isBiogrid = Boolean(edge.isBiogrid)
         return {
           id: index,
           from: edge.source,
           to: edge.target,
           color: {
-            color: isBiogrid ? '#ef4444' : '#94a3b8',
-            highlight: isBiogrid ? '#f87171' : '#cbd5e1',
+            color: edge.isBiogrid ? '#ef4444' : '#94a3b8',
+            highlight: edge.isBiogrid ? '#f87171' : '#cbd5e1',
             opacity: 0.8
           },
-          width: isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1),
+          width: edge.isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1),
           smooth: false,
           arrows: {
             to: false,
@@ -131,7 +107,66 @@ const GeneNetworkVisualizer = () => {
     }
   };
 
-  // ... (keep existing options and events objects)
+  const options = {
+    nodes: {
+      shape: 'dot',
+      size: 20,
+      borderWidth: 0,  // Remove borders
+      shadow: false,   // Remove shadows
+      font: {
+        size: 16,
+        color: '#333333'
+      }
+    },
+    edges: {
+      width: 2,
+      smooth: false,
+      shadow: false,  // Remove shadows
+      arrows: {
+        to: false,
+        from: false
+      }
+    },
+    physics: {
+      enabled: false,
+      forceAtlas2Based: {
+        gravitationalConstant: -50,
+        centralGravity: 0.01,
+        springLength: 100,
+        springConstant: 0.08,
+        damping: 0.4,
+        avoidOverlap: 1.5
+      },
+      solver: 'forceAtlas2Based',
+      stabilization: {
+        enabled: true,
+        iterations: 1000,
+        updateInterval: 25,
+        fit: true
+      },
+      adaptiveTimestep: true,
+      timestep: 0.5,
+      minVelocity: 0.75
+    },
+    layout: {
+      improvedLayout: true,
+      randomSeed: 42
+    },
+    interaction: {
+      hover: true,
+      zoomView: true,
+      dragView: true,
+      dragNodes: true,
+      multiselect: true
+    },
+    height: '500px'
+  };
+
+  const events = {
+    select: function(event) {
+      console.log('Selected elements:', event);
+    }
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto m-4">
@@ -140,7 +175,30 @@ const GeneNetworkVisualizer = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* ... (keep existing server status alerts) */}
+          {serverStatus ? (
+            <div className="space-y-2 mb-4">
+              <Alert variant={serverStatus.links_file_loaded ? "default" : "destructive"}>
+                <AlertDescription>
+                  Links file: {serverStatus.links_file_loaded ? 
+                    `Loaded (${serverStatus.links_file_rows.toLocaleString()} rows)` : 
+                    "Not loaded"}
+                </AlertDescription>
+              </Alert>
+              <Alert variant={serverStatus.biogrid_file_loaded ? "default" : "destructive"}>
+                <AlertDescription>
+                  BioGrid file: {serverStatus.biogrid_file_loaded ? 
+                    `Loaded (${serverStatus.biogrid_file_rows.toLocaleString()} rows)` : 
+                    "Not loaded"}
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Checking server status...
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div>
             <h3 className="text-sm font-medium mb-2">Upload Genes of Interest File (.xlsx)</h3>
@@ -161,28 +219,6 @@ const GeneNetworkVisualizer = () => {
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Add debug information display */}
-          {debugInfo && (
-            <Alert>
-              <AlertDescription>
-                <div className="space-y-2">
-                  <p>Total Edges: {debugInfo.totalEdges}</p>
-                  <p>BioGrid Edges: {debugInfo.biogridEdges}</p>
-                  <div className="mt-2">
-                    <p className="font-medium">Sample Edges:</p>
-                    {debugInfo.sampleEdges.map((edge, i) => (
-                      <div key={i} className="text-sm mt-1">
-                        {edge.source} → {edge.target} 
-                        (BioGrid: {String(edge.isBiogrid)}, 
-                        Value: {edge.value})
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </AlertDescription>
             </Alert>
           )}
 
