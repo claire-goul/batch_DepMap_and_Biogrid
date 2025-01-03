@@ -33,6 +33,15 @@ app.add_middleware(
     max_age=600,
 )
 
+def log_dataframe_info(df, name):
+    """Helper function to log DataFrame information"""
+    logger.info(f"\n{'-'*50}")
+    logger.info(f"{name} DataFrame Info:")
+    logger.info(f"Shape: {df.shape}")
+    logger.info(f"Columns: {df.columns.tolist()}")
+    logger.info(f"Sample data:\n{df.head()}")
+    logger.info(f"{'-'*50}\n")
+    
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     logger.info(f"Starting correlation analysis with parameters: threshold={threshold}, corrpos={corrpos}, num={num}")
     
@@ -46,8 +55,10 @@ def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     
     if corrpos:
         links_subset = links_subset[links_subset['corrscore'] >= threshold]
+        logger.info(f"After positive correlation filter: {len(links_subset)}")
     else:
         links_subset = links_subset[links_subset['corrscore'] <= threshold]
+        logger.info(f"After negative correlation filter: {len(links_subset)}")
     
     # Group and process
     result_dfs = []
@@ -63,8 +74,9 @@ def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     
     # Combine results
     corr = pd.concat(result_dfs, ignore_index=True)
+    
     logger.info(f"Final correlation results: {len(corr)} pairs")
-    logger.info(f"Sample correlations:\n{corr.head()}")
+    log_dataframe_info(corr, "Correlations")
     return corr
 
 def get_biogrid_edgelist(genes, bg, filters, numcitations):
@@ -74,168 +86,65 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     genes_list = set(genes['Gene'].str.upper())
     logger.info(f"Processing {len(genes_list)} genes")
     
-    def extract_gene_symbols_batch(df, interactor='A'):
+    def extract_gene_symbols_batch(df, interactor):
         alias_col = f'Aliases Interactor {interactor}'
         alt_id_col = f'Alt IDs Interactor {interactor}'
-        
         symbols = []
         for _, row in df.iterrows():
-            row_symbols = set()
-            
+            row_symbols = set()  # Using set here for unique symbols
             if pd.notnull(row[alias_col]):
                 aliases = str(row[alias_col]).split('|')
                 for alias in aliases:
                     if 'entrez gene/locuslink:' in alias.lower():
                         gene = alias.split('(')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
-            
             if pd.notnull(row[alt_id_col]):
                 alt_ids = str(row[alt_id_col]).split('|')
                 for alt_id in alt_ids:
                     if 'entrez gene/locuslink:' in alt_id.lower():
                         gene = alt_id.split('|')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
-            
-            symbols.append(list(row_symbols))
-        
+            # Convert set to list before appending
+            symbols.append(list(row_symbols) if row_symbols else [])
         return symbols
     
     logger.info("Extracting gene symbols...")
     genes_a = extract_gene_symbols_batch(bg, 'A')
     genes_b = extract_gene_symbols_batch(bg, 'B')
     
-    edges = set()
+    edges = []
     logger.info("Creating edges...")
     
-    for i in range(len(bg)):
+    for i in range(len(genes_a)):
         for gene_a in genes_a[i]:
-            gene_a_upper = gene_a.upper()
-            if gene_a_upper in genes_list:
-                for gene_b in genes_b[i]:
-                    gene_b_upper = gene_b.upper()
-                    if gene_b_upper != gene_a_upper:
-                        edges.add((gene_a, gene_b))
-        
+            if gene_a in genes_list:
+                if genes_b[i] != gene_a:
+                    edges.append((gene_a, genes_b[i][0]))
         for gene_b in genes_b[i]:
-            gene_b_upper = gene_b.upper()
-            if gene_b_upper in genes_list:
-                for gene_a in genes_a[i]:
-                    gene_a_upper = gene_a.upper()
-                    if gene_a_upper != gene_b_upper:
-                        edges.add((gene_b, gene_a))
+            if gene_b in genes_list:
+                if genes_a[i] != gene_b:
+                    edges.append((gene_b, genes_a[i][0]))
     
     logger.info(f"Found {len(edges)} potential interactions")
     
     if edges:
-        edgelist_biogrid = pd.DataFrame(list(edges), columns=['Gene', 'Gene1'])
+        edgelist_biogrid = pd.DataFrame(edges, columns=['Gene', 'Gene1'])
         
         # Count occurrences to filter by citation count
         edge_counts = edgelist_biogrid.groupby(['Gene', 'Gene1']).size().reset_index(name='count')
         edge_counts = edge_counts[edge_counts['count'] >= numcitations]
         
-        # Create final edge list with explicit boolean for bg column
+        # Create final edge list
         edgelist_biogrid_final = edge_counts[['Gene', 'Gene1']].copy()
-        edgelist_biogrid_final['bg'] = True  # Using boolean True
+        edgelist_biogrid_final['bg'] = True
         
         logger.info(f"Final BioGrid interactions: {len(edgelist_biogrid_final)}")
-        logger.info(f"Sample BioGrid edges:\n{edgelist_biogrid_final.head()}")
+        log_dataframe_info(edgelist_biogrid_final, "BioGrid")
         return edgelist_biogrid_final
     else:
         logger.warning("No BioGrid edges found")
         return pd.DataFrame(columns=['Gene', 'Gene1', 'bg'])
-
-@app.post("/upload/")
-async def process_network(genes_file: UploadFile = File(...)):
-    global links_filtered, biogrid_df
-    logger.info("Upload endpoint called")
-    
-    try:
-        # Read the genes file
-        genes_df = pd.read_excel(io.BytesIO(await genes_file.read()), engine='openpyxl')
-        logger.info(f"Processing {len(genes_df)} genes")
-        logger.info(f"Sample genes:\n{genes_df.head()}")
-
-        # Get correlations
-        corr = get_correlations_edgelist(
-            genes=genes_df,
-            links_filtered=links_filtered,
-            threshold=0.2,
-            corrpos=True,
-            num=3
-        )
-        # Add bg column to correlations with False
-        corr['bg'] = False
-        logger.info(f"Correlation edges shape: {corr.shape}")
-        logger.info(f"Sample correlations:\n{corr.head()}")
-
-        # Get BioGrid edges
-        edgelist_biogrid = get_biogrid_edgelist(
-            genes=genes_df,
-            bg=biogrid_df,
-            filters=['psi-mi:"MI:0915"(physical association)'],
-            numcitations=2
-        )
-        logger.info(f"BioGrid edges shape: {edgelist_biogrid.shape}")
-        logger.info(f"Sample BioGrid edges:\n{edgelist_biogrid.head()}")
-
-        # Combine edges from both sources
-        all_edges = pd.concat([corr, edgelist_biogrid], ignore_index=True)
-        logger.info(f"Combined edges shape: {all_edges.shape}")
-        logger.info(f"Sample combined edges:\n{all_edges.head()}")
         
-        # Create unique node list
-        unique_nodes = set(all_edges['Gene'].unique()) | set(all_edges['Gene1'].unique())
-        logger.info(f"Found {len(unique_nodes)} unique nodes")
-
-        # Create network data
-        network_data = {
-            "nodes": [{"id": node, "isInterest": node in genes_df['Gene'].tolist()} for node in unique_nodes],
-            "edges": []
-        }
-
-        # Create edges with explicit type handling
-        for _, row in all_edges.iterrows():
-            edge = {
-                "source": row['Gene'],
-                "target": row['Gene1'],
-                "value": float(row['corrscore']) if pd.notnull(row.get('corrscore')) else 0,
-                "isBiogrid": bool(row['bg']) if pd.notnull(row.get('bg')) else False
-            }
-            network_data["edges"].append(edge)
-
-        # Log final statistics
-        biogrid_count = sum(1 for e in network_data["edges"] if e["isBiogrid"])
-        logger.info(f"Network statistics:")
-        logger.info(f"Total nodes: {len(network_data['nodes'])}")
-        logger.info(f"Total edges: {len(network_data['edges'])}")
-        logger.info(f"BioGrid edges: {biogrid_count}")
-        
-        # Log sample edges for verification
-        logger.info("Sample network edges:")
-        for edge in network_data['edges'][:5]:
-            logger.info(json.dumps(edge))
-
-        return network_data
-
-    except Exception as e:
-        logger.error(f"Error processing network: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/")
-async def root():
-    return {"message": "Gene Network API is running"}
-
-@app.get("/status/")
-async def get_status():
-    """Get status of loaded files and additional information"""
-    return {
-        "links_file_loaded": links_filtered is not None,
-        "biogrid_file_loaded": biogrid_df is not None,
-        "links_file_rows": len(links_filtered) if links_filtered is not None else 0,
-        "biogrid_file_rows": len(biogrid_df) if biogrid_df is not None else 0,
-        "server_status": "running"
-    }
-
 @app.on_event("startup")
 async def startup_event():
     """Load the large files when the server starts"""
@@ -254,7 +163,7 @@ async def startup_event():
         
         links_filtered = pd.read_excel(links_path, engine='openpyxl')
         logger.info(f"Links file loaded: {len(links_filtered)} rows")
-        logger.info(f"Links file columns: {links_filtered.columns.tolist()}")
+        log_dataframe_info(links_filtered, "Links")
 
         # Load BioGrid file
         logger.info("Loading BioGrid file...")
@@ -268,7 +177,7 @@ async def startup_event():
         
         biogrid_df = pd.read_excel(biogrid_path, engine='openpyxl')
         logger.info(f"BioGrid file loaded: {len(biogrid_df)} rows")
-        logger.info(f"BioGrid file columns: {biogrid_df.columns.tolist()}")
+        log_dataframe_info(biogrid_df, "BioGrid")
 
     except Exception as e:
         logger.error(f"Error loading files: {str(e)}")
@@ -279,3 +188,99 @@ async def startup_event():
         else:
             logger.error("Data directory not found")
         raise e
+
+@app.get("/")
+async def root():
+    return {"message": "Gene Network API is running"}
+
+@app.get("/status/")
+async def get_status():
+    """Get status of loaded files and additional information"""
+    return {
+        "links_file_loaded": links_filtered is not None,
+        "biogrid_file_loaded": biogrid_df is not None,
+        "links_file_rows": len(links_filtered) if links_filtered is not None else 0,
+        "biogrid_file_rows": len(biogrid_df) if biogrid_df is not None else 0,
+        "server_status": "running"
+    }
+
+@app.post("/upload/")
+async def process_network(genes_file: UploadFile = File(...)):
+    global links_filtered, biogrid_df
+    logger.info("Upload endpoint called")
+    
+    try:
+        # Read the genes file
+        genes_df = pd.read_excel(io.BytesIO(await genes_file.read()), engine='openpyxl')
+        logger.info(f"Processing {len(genes_df)} genes")
+        log_dataframe_info(genes_df, "Input Genes")
+
+        # Get correlations
+        corr = get_correlations_edgelist(
+            genes=genes_df,
+            links_filtered=links_filtered,
+            threshold=0.2,
+            corrpos=True,
+            num=3
+        )
+
+        # Get BioGrid edges
+        edgelist_biogrid = get_biogrid_edgelist(
+            genes=genes_df,
+            bg=biogrid_df,
+            filters=['psi-mi:"MI:0915"(physical association)'],
+            numcitations=2
+        )
+
+        # Merge results
+        logger.info("Merging correlation and BioGrid data...")
+        corrwithbgforcorr = pd.merge(
+            corr, 
+            edgelist_biogrid, how='left',
+            on=['Gene', 'Gene1'])
+        
+        # Log merge results
+        log_dataframe_info(corrwithbgforcorr, "Merged Results")
+
+        # Create network data
+        network_data = {
+            "nodes": [],
+            "edges": []
+        }
+
+        # Create unique node list
+        unique_nodes = set()
+        for _, row in corrwithbgforcorr.iterrows():
+            unique_nodes.add(row['Gene'])
+            unique_nodes.add(row['Gene1'])
+
+        # Add nodes
+        genes_list = set(genes_df['Gene'].tolist())
+        network_data["nodes"] = [
+            {"id": node, "isInterest": node in genes_list}
+            for node in unique_nodes
+        ]
+
+        # Add edges
+        for _, row in corrwithbgforcorr.iterrows():
+            edge = {
+                "source": row['Gene'],
+                "target": row['Gene1'],
+                "value": float(row['corrscore']) if pd.notnull(row.get('corrscore')) else 0,
+                "isBiogrid": bool(row['bg']) if pd.notnull(row.get('bg')) else False
+            }
+            network_data["edges"].append(edge)
+
+        # Log network statistics
+        logger.info(f"Network statistics:")
+        logger.info(f"Total nodes: {len(network_data['nodes'])}")
+        logger.info(f"Total edges: {len(network_data['edges'])}")
+        logger.info(f"Edges: {network_data['edges']}")
+        logger.info(f"BioGrid edges: {sum(1 for e in network_data['edges'] if e['isBiogrid'])}")
+        logger.info(f"Sample edges:\n{json.dumps(network_data['edges'][:5], indent=2)}")
+
+        return network_data
+
+    except Exception as e:
+        logger.error(f"Error processing network: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
