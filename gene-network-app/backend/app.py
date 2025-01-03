@@ -33,15 +33,6 @@ app.add_middleware(
     max_age=600,
 )
 
-def log_dataframe_info(df, name):
-    """Helper function to log DataFrame information"""
-    logger.info(f"\n{'-'*50}")
-    logger.info(f"{name} DataFrame Info:")
-    logger.info(f"Shape: {df.shape}")
-    logger.info(f"Columns: {df.columns.tolist()}")
-    logger.info(f"Sample data:\n{df.head()}")
-    logger.info(f"{'-'*50}\n")
-    
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     logger.info(f"Starting correlation analysis with parameters: threshold={threshold}, corrpos={corrpos}, num={num}")
     
@@ -55,10 +46,8 @@ def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     
     if corrpos:
         links_subset = links_subset[links_subset['corrscore'] >= threshold]
-        logger.info(f"After positive correlation filter: {len(links_subset)}")
     else:
         links_subset = links_subset[links_subset['corrscore'] <= threshold]
-        logger.info(f"After negative correlation filter: {len(links_subset)}")
     
     # Group and process
     result_dfs = []
@@ -74,9 +63,8 @@ def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
     
     # Combine results
     corr = pd.concat(result_dfs, ignore_index=True)
-    
     logger.info(f"Final correlation results: {len(corr)} pairs")
-    log_dataframe_info(corr, "Correlations")
+    logger.info(f"Sample correlations:\n{corr.head()}")
     return corr
 
 def get_biogrid_edgelist(genes, bg, filters, numcitations):
@@ -86,123 +74,75 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     genes_list = set(genes['Gene'].str.upper())
     logger.info(f"Processing {len(genes_list)} genes")
     
-    def extract_gene_symbols_batch(df, interactor):
+    def extract_gene_symbols_batch(df, interactor='A'):
         alias_col = f'Aliases Interactor {interactor}'
         alt_id_col = f'Alt IDs Interactor {interactor}'
+        
         symbols = []
         for _, row in df.iterrows():
-            row_symbols = set()  # Using set here for unique symbols
+            row_symbols = set()
+            
             if pd.notnull(row[alias_col]):
                 aliases = str(row[alias_col]).split('|')
                 for alias in aliases:
                     if 'entrez gene/locuslink:' in alias.lower():
                         gene = alias.split('(')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
+            
             if pd.notnull(row[alt_id_col]):
                 alt_ids = str(row[alt_id_col]).split('|')
                 for alt_id in alt_ids:
                     if 'entrez gene/locuslink:' in alt_id.lower():
                         gene = alt_id.split('|')[0].split(':')[-1].strip()
                         row_symbols.add(gene)
-            # Convert set to list before appending
-            symbols.append(list(row_symbols) if row_symbols else [])
+            
+            symbols.append(list(row_symbols))
+        
         return symbols
     
     logger.info("Extracting gene symbols...")
     genes_a = extract_gene_symbols_batch(bg, 'A')
     genes_b = extract_gene_symbols_batch(bg, 'B')
     
-    edges = []
+    edges = set()
     logger.info("Creating edges...")
     
-    for i in range(len(genes_a)):
+    for i in range(len(bg)):
         for gene_a in genes_a[i]:
-            if gene_a in genes_list:
-                if genes_b[i] != gene_a:
-                    edges.append((gene_a, genes_b[i][0]))
+            gene_a_upper = gene_a.upper()
+            if gene_a_upper in genes_list:
+                for gene_b in genes_b[i]:
+                    gene_b_upper = gene_b.upper()
+                    if gene_b_upper != gene_a_upper:
+                        edges.add((gene_a, gene_b))
+        
         for gene_b in genes_b[i]:
-            if gene_b in genes_list:
-                if genes_a[i] != gene_b:
-                    edges.append((gene_b, genes_a[i][0]))
+            gene_b_upper = gene_b.upper()
+            if gene_b_upper in genes_list:
+                for gene_a in genes_a[i]:
+                    gene_a_upper = gene_a.upper()
+                    if gene_a_upper != gene_b_upper:
+                        edges.add((gene_b, gene_a))
     
     logger.info(f"Found {len(edges)} potential interactions")
     
     if edges:
-        edgelist_biogrid = pd.DataFrame(edges, columns=['Gene', 'Gene1'])
+        edgelist_biogrid = pd.DataFrame(list(edges), columns=['Gene', 'Gene1'])
         
         # Count occurrences to filter by citation count
         edge_counts = edgelist_biogrid.groupby(['Gene', 'Gene1']).size().reset_index(name='count')
         edge_counts = edge_counts[edge_counts['count'] >= numcitations]
         
-        # Create final edge list
+        # Create final edge list with explicit boolean for bg column
         edgelist_biogrid_final = edge_counts[['Gene', 'Gene1']].copy()
-        edgelist_biogrid_final['bg'] = True
+        edgelist_biogrid_final['bg'] = True  # Using boolean True
         
         logger.info(f"Final BioGrid interactions: {len(edgelist_biogrid_final)}")
-        log_dataframe_info(edgelist_biogrid_final, "BioGrid")
+        logger.info(f"Sample BioGrid edges:\n{edgelist_biogrid_final.head()}")
         return edgelist_biogrid_final
     else:
         logger.warning("No BioGrid edges found")
         return pd.DataFrame(columns=['Gene', 'Gene1', 'bg'])
-        
-@app.on_event("startup")
-async def startup_event():
-    """Load the large files when the server starts"""
-    global links_filtered, biogrid_df
-    
-    try:
-        # Load links file
-        logger.info("Loading links file...")
-        links_path = os.path.join('data', 'links_achilles.xlsx')
-        if not os.path.exists(links_path):
-            logger.error(f"Links file not found at {links_path}")
-            raise FileNotFoundError(f"Links file not found at {links_path}")
-        
-        file_size = os.path.getsize(links_path)
-        logger.info(f"Links file size: {file_size} bytes")
-        
-        links_filtered = pd.read_excel(links_path, engine='openpyxl')
-        logger.info(f"Links file loaded: {len(links_filtered)} rows")
-        log_dataframe_info(links_filtered, "Links")
-
-        # Load BioGrid file
-        logger.info("Loading BioGrid file...")
-        biogrid_path = os.path.join('data', 'biogrid_human_processed_4_4_212.xlsx')
-        if not os.path.exists(biogrid_path):
-            logger.error(f"BioGrid file not found at {biogrid_path}")
-            raise FileNotFoundError(f"BioGrid file not found at {biogrid_path}")
-        
-        file_size = os.path.getsize(biogrid_path)
-        logger.info(f"BioGrid file size: {file_size} bytes")
-        
-        biogrid_df = pd.read_excel(biogrid_path, engine='openpyxl')
-        logger.info(f"BioGrid file loaded: {len(biogrid_df)} rows")
-        log_dataframe_info(biogrid_df, "BioGrid")
-
-    except Exception as e:
-        logger.error(f"Error loading files: {str(e)}")
-        logger.error(f"Current working directory: {os.getcwd()}")
-        logger.error(f"Files in current directory: {os.listdir()}")
-        if os.path.exists('data'):
-            logger.error(f"Files in data directory: {os.listdir('data')}")
-        else:
-            logger.error("Data directory not found")
-        raise e
-
-@app.get("/")
-async def root():
-    return {"message": "Gene Network API is running"}
-
-@app.get("/status/")
-async def get_status():
-    """Get status of loaded files and additional information"""
-    return {
-        "links_file_loaded": links_filtered is not None,
-        "biogrid_file_loaded": biogrid_df is not None,
-        "links_file_rows": len(links_filtered) if links_filtered is not None else 0,
-        "biogrid_file_rows": len(biogrid_df) if biogrid_df is not None else 0,
-        "server_status": "running"
-    }
 
 @app.post("/upload/")
 async def process_network(genes_file: UploadFile = File(...)):
@@ -213,6 +153,7 @@ async def process_network(genes_file: UploadFile = File(...)):
         # Read the genes file
         genes_df = pd.read_excel(io.BytesIO(await genes_file.read()), engine='openpyxl')
         logger.info(f"Processing {len(genes_df)} genes")
+        logger.info(f"Sample genes:\n{genes_df.head()}")
 
         # Get correlations
         corr = get_correlations_edgelist(
@@ -279,3 +220,62 @@ async def process_network(genes_file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Error processing network: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/")
+async def root():
+    return {"message": "Gene Network API is running"}
+
+@app.get("/status/")
+async def get_status():
+    """Get status of loaded files and additional information"""
+    return {
+        "links_file_loaded": links_filtered is not None,
+        "biogrid_file_loaded": biogrid_df is not None,
+        "links_file_rows": len(links_filtered) if links_filtered is not None else 0,
+        "biogrid_file_rows": len(biogrid_df) if biogrid_df is not None else 0,
+        "server_status": "running"
+    }
+
+@app.on_event("startup")
+async def startup_event():
+    """Load the large files when the server starts"""
+    global links_filtered, biogrid_df
+    
+    try:
+        # Load links file
+        logger.info("Loading links file...")
+        links_path = os.path.join('data', 'links_achilles.xlsx')
+        if not os.path.exists(links_path):
+            logger.error(f"Links file not found at {links_path}")
+            raise FileNotFoundError(f"Links file not found at {links_path}")
+        
+        file_size = os.path.getsize(links_path)
+        logger.info(f"Links file size: {file_size} bytes")
+        
+        links_filtered = pd.read_excel(links_path, engine='openpyxl')
+        logger.info(f"Links file loaded: {len(links_filtered)} rows")
+        logger.info(f"Links file columns: {links_filtered.columns.tolist()}")
+
+        # Load BioGrid file
+        logger.info("Loading BioGrid file...")
+        biogrid_path = os.path.join('data', 'biogrid_human_processed_4_4_212.xlsx')
+        if not os.path.exists(biogrid_path):
+            logger.error(f"BioGrid file not found at {biogrid_path}")
+            raise FileNotFoundError(f"BioGrid file not found at {biogrid_path}")
+        
+        file_size = os.path.getsize(biogrid_path)
+        logger.info(f"BioGrid file size: {file_size} bytes")
+        
+        biogrid_df = pd.read_excel(biogrid_path, engine='openpyxl')
+        logger.info(f"BioGrid file loaded: {len(biogrid_df)} rows")
+        logger.info(f"BioGrid file columns: {biogrid_df.columns.tolist()}")
+
+    except Exception as e:
+        logger.error(f"Error loading files: {str(e)}")
+        logger.error(f"Current working directory: {os.getcwd()}")
+        logger.error(f"Files in current directory: {os.listdir()}")
+        if os.path.exists('data'):
+            logger.error(f"Files in data directory: {os.listdir('data')}")
+        else:
+            logger.error("Data directory not found")
+        raise e
