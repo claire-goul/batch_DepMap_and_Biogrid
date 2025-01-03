@@ -1,7 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { Upload } from 'lucide-react';
+import Graph from 'react-graph-vis';
 
 const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
+
+const options = {
+  nodes: {
+    shape: 'dot',
+    size: 20,
+    borderWidth: 0,
+    shadow: false,
+    font: {
+      size: 16,
+      color: '#333333'
+    }
+  },
+  edges: {
+    width: 2,
+    smooth: false,
+    shadow: false,
+    arrows: {
+      to: false,
+      from: false
+    }
+  },
+  physics: {
+    enabled: false,
+    forceAtlas2Based: {
+      gravitationalConstant: -50,
+      centralGravity: 0.01,
+      springLength: 100,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 1.5
+    },
+    solver: 'forceAtlas2Based',
+    stabilization: {
+      enabled: true,
+      iterations: 1000,
+      updateInterval: 25,
+      fit: true
+    },
+    adaptiveTimestep: true,
+    timestep: 0.5,
+    minVelocity: 0.75
+  },
+  layout: {
+    improvedLayout: true,
+    randomSeed: 42
+  },
+  interaction: {
+    hover: true,
+    zoomView: true,
+    dragView: true,
+    dragNodes: true,
+    multiselect: true
+  },
+  height: '500px'
+};
 
 const GeneNetworkVisualizer = () => {
   const [networkData, setNetworkData] = useState(null);
@@ -76,23 +132,45 @@ const GeneNetworkVisualizer = () => {
       console.log('Debug statistics:', debugStats);
       setDebugInfo(debugStats);
 
-      // Process network data for visualization
+      // Process nodes and edges for visualization
       const nodes = data.nodes.map(node => ({
         id: node.id,
         label: node.id,
         color: node.isInterest ? '#22c55e' : '#94a3b8',
-        size: node.isInterest ? 25 : 20
+        size: node.isInterest ? 25 : 20,
+        font: {
+          size: node.isInterest ? 16 : 14,
+          color: '#333333'
+        },
+        borderWidth: 0
       }));
 
       const edges = data.edges.map((edge, index) => {
         const hasCorrelation = typeof edge.value === 'number';
+        const isBiogrid = edge.isBiogrid === true;
+        
+        console.log(`Processing edge ${index}:`, {
+          source: edge.source,
+          target: edge.target,
+          isBiogrid: edge.isBiogrid,
+          value: edge.value
+        });
         
         return {
           id: index,
           from: edge.source,
           to: edge.target,
-          color: edge.isBiogrid ? '#ef4444' : '#94a3b8',
-          width: edge.isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1)
+          color: {
+            color: isBiogrid ? '#ef4444' : '#94a3b8',
+            highlight: isBiogrid ? '#f87171' : '#cbd5e1',
+            opacity: 0.8
+          },
+          width: isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1),
+          smooth: false,
+          arrows: {
+            to: false,
+            from: false
+          }
         };
       });
 
@@ -106,6 +184,12 @@ const GeneNetworkVisualizer = () => {
     }
   };
 
+  const events = {
+    select: function(event) {
+      console.log('Selected elements:', event);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto m-4 bg-white rounded-lg shadow">
       <div className="p-6 border-b">
@@ -113,6 +197,7 @@ const GeneNetworkVisualizer = () => {
       </div>
 
       <div className="p-6 space-y-4">
+        {/* Server Status */}
         {serverStatus ? (
           <div className="space-y-2">
             <div className={`p-4 rounded ${serverStatus.links_file_loaded ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
@@ -132,6 +217,7 @@ const GeneNetworkVisualizer = () => {
           </div>
         )}
 
+        {/* File Upload */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Upload className="w-4 h-4" />
@@ -153,12 +239,14 @@ const GeneNetworkVisualizer = () => {
           )}
         </div>
 
+        {/* Error Display */}
         {error && (
           <div className="p-4 bg-red-50 text-red-800 rounded">
             {error}
           </div>
         )}
 
+        {/* Debug Information */}
         {debugInfo && (
           <div className="p-4 bg-blue-50 rounded">
             <div className="space-y-4">
@@ -202,24 +290,37 @@ const GeneNetworkVisualizer = () => {
           </div>
         )}
 
+        {/* Network Visualization */}
         {networkData && networkData.nodes.length > 0 && (
-          <div className="border rounded-lg bg-white p-4">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                <span>Genes of Interest ({networkData.nodes.filter(n => n.color === '#22c55e').length})</span>
+          <div className="space-y-4">
+            <div className="border rounded-lg overflow-hidden bg-white">
+              <div style={{ height: '500px' }}>
+                <Graph
+                  graph={networkData}
+                  options={options}
+                  events={events}
+                />
               </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
-                <span>Other Genes ({networkData.nodes.filter(n => n.color === '#94a3b8').length})</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-1 bg-gray-400 mr-2"></div>
-                <span>Correlation Edge ({debugInfo?.correlationEdges || 0})</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-1 bg-red-500 mr-2"></div>
-                <span>BioGrid Edge ({debugInfo?.biogridEdges || 0})</span>
+
+              <div className="p-4 border-t">
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                    <span>Genes of Interest ({networkData.nodes.filter(n => n.color === '#22c55e').length})</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
+                    <span>Other Genes ({networkData.nodes.filter(n => n.color === '#94a3b8').length})</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-1 bg-gray-400 mr-2"></div>
+                    <span>Correlation Edge ({debugInfo?.correlationEdges || 0})</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-1 bg-red-500 mr-2"></div>
+                    <span>BioGrid Edge ({debugInfo?.biogridEdges || 0})</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
