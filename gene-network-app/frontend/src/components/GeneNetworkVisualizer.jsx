@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+∂import React, { useState, useEffect } from 'react';
 import Graph from 'react-graph-vis';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Input } from './ui/input';
@@ -78,8 +78,6 @@ const GeneNetworkVisualizer = () => {
 
       const edges = data.edges.map((edge, index) => {
         const hasCorrelation = typeof edge.value === 'number';
-        const isBiogrid = Boolean(edge.isBiogrid); // Explicit boolean conversion
-
         return {
           id: index,
           from: edge.source,
