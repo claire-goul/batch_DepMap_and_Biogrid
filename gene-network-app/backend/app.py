@@ -267,7 +267,7 @@ async def process_network(genes_file: UploadFile = File(...)):
                 "source": row['Gene'],
                 "target": row['Gene1'],
                 "value": float(row['corrscore']) if pd.notnull(row.get('corrscore')) else 0,
-                "isBiogrid": bool(row['bg']) if pd.notnull(row.get('bg')) else False
+                "isBiogrid": 'yes' if pd.notnull(row.get('bg')) else 'no'
             }
             network_data["edges"].append(edge)
 
