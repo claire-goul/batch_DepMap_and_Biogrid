@@ -118,8 +118,8 @@ const GeneNetworkVisualizer = () => {
       console.log('Received network data:', data);
 
       // Process edges and create debug info
-      const biogridEdges = data.edges.filter(e => e.isBiogrid === true);
-      const correlationEdges = data.edges.filter(e => !e.isBiogrid);
+      const biogridEdges = data.edges.filter(e => e.isBiogrid === 'yes');
+      const correlationEdges = data.edges.filter(e => e.isBiogrid ==='no');
       
       const debugStats = {
         totalEdges: data.edges.length,
