@@ -146,7 +146,7 @@ const GeneNetworkVisualizer = () => {
       }));
 
       const edges = data.edges.map((edge, index) => {
-        const hasCorrelation = typeof edge.value === 'number';
+        const hasCorrelation = edge.isBiogrid === 'no';
         const isBiogrid = edge.isBiogrid === 'yes';
         
         console.log(`Processing edge ${index}:`, {
@@ -161,11 +161,11 @@ const GeneNetworkVisualizer = () => {
           from: edge.source,
           to: edge.target,
           color: {
-            color: isBiogrid === 'yes' ? '#ef4444' : '#94a3b8',
-            highlight: isBiogrid === 'yes' ? '#f87171' : '#cbd5e1',
-            opacity: 0.8
+            color: isBiogrid ? '#ef4444' : '#94a3b8',
+            highlight: isBiogrid ? '#f87171' : '#cbd5e1',
+            opacity: 0.2
           },
-          width: isBiogrid === 'yes' ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1),
+          width: isBiogrid ? 2 : (hasCorrelation ? Math.max(1, Math.abs(edge.value) * 3) : 1),
           smooth: false,
           arrows: {
             to: false,
