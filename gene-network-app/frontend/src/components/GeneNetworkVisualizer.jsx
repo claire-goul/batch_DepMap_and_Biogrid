@@ -147,7 +147,7 @@ const GeneNetworkVisualizer = () => {
 
       const edges = data.edges.map((edge, index) => {
         const hasCorrelation = typeof edge.value === 'number';
-        const isBiogrid = edge.isBiogrid === true;
+        const isBiogrid = edge.isBiogrid === 'yes';
         
         console.log(`Processing edge ${index}:`, {
           source: edge.source,
