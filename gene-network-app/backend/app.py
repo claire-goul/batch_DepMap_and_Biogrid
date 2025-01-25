@@ -276,7 +276,6 @@ async def process_network(genes_file: UploadFile = File(...)):
         logger.info(f"Total nodes: {len(network_data['nodes'])}")
         logger.info(f"Total edges: {len(network_data['edges'])}")
         logger.info(f"Edges: {network_data['edges']}")
-        logger.info(f"BioGrid edges: {sum(1 for e in network_data['edges'] if e['isBiogrid'])}")
         logger.info(f"Sample edges:\n{json.dumps(network_data['edges'][:5], indent=2)}")
 
         return network_data
