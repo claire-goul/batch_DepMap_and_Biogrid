@@ -65,6 +65,9 @@ const GeneNetworkVisualizer = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverStatus, setServerStatus] = useState(null);
   const [debugInfo, setDebugInfo] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [threshold, setThreshold] = useState(0.2);
+  const [num, setNum] = useState(3);
 
   useEffect(() => {
     checkServerStatus();
@@ -83,8 +86,6 @@ const GeneNetworkVisualizer = () => {
       setError('Could not connect to server: ' + err.message);
     }
   };
-  const [threshold, setThreshold] = useState(0.2);
-  const [num, setNum] = useState(3);
   
   const processFile = async (file) => {
     if (!file) {
@@ -96,7 +97,7 @@ const GeneNetworkVisualizer = () => {
 
     try {
       const formData = new FormData();
-      formData.append('genes_file', file);
+      formData.append('genes_file', selectedFile);
       formData.append('threshold', Number(threshold));
       formData.append('num', Number(num));
       
@@ -125,7 +126,6 @@ const GeneNetworkVisualizer = () => {
       const data = await response.json();
       console.log('Received network data:', data);
 
-      // Process edges and create debug info
       const biogridEdges = data.edges.filter(e => e.isBiogrid === 'yes');
       const correlationEdges = data.edges.filter(e => e.isBiogrid ==='no');
       
@@ -133,14 +133,13 @@ const GeneNetworkVisualizer = () => {
         totalEdges: data.edges.length,
         biogridEdges: biogridEdges.length,
         correlationEdges: correlationEdges.length,
-        sampleBiogrid: biogridEdges.slice(0, 3),
-        sampleCorrelation: correlationEdges.slice(0, 3)
+        sampleBiogrid: biogridEdges,
+        sampleCorrelation: correlationEdges
       };
 
       console.log('Debug statistics:', debugStats);
       setDebugInfo(debugStats);
 
-      // Process nodes and edges for visualization
       const nodes = data.nodes.map(node => ({
         id: node.id,
         label: node.id,
@@ -156,13 +155,6 @@ const GeneNetworkVisualizer = () => {
       const edges = data.edges.map((edge, index) => {
         const hasCorrelation = edge.isBiogrid === 'no';
         const isBiogrid = edge.isBiogrid === 'yes';
-        
-        console.log(`Processing edge ${index}:`, {
-          source: edge.source,
-          target: edge.target,
-          isBiogrid: edge.isBiogrid,
-          value: edge.value
-        });
         
         return {
           id: index,
@@ -205,7 +197,6 @@ const GeneNetworkVisualizer = () => {
       </div>
 
       <div className="p-6 space-y-4">
-        {/* Server Status */}
         {serverStatus ? (
           <div className="space-y-2">
             <div className={`p-4 rounded ${serverStatus.links_file_loaded ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
@@ -225,7 +216,6 @@ const GeneNetworkVisualizer = () => {
           </div>
         )}
 
-        {/* File Upload */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Upload className="w-4 h-4" />
@@ -236,59 +226,65 @@ const GeneNetworkVisualizer = () => {
             accept=".xlsx"
             onChange={(e) => {
               if (e.target.files && e.target.files[0]) {
-                processFile(e.target.files[0]);
+                setSelectedFile(e.target.files[0]);
               }
             }}
             className="block w-full text-sm border border-gray-300 rounded cursor-pointer file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
             disabled={isProcessing}
           />
-            {/* Add new inputs here */}
-         <div className="grid grid-cols-2 gap-4 mt-2">
-          <div>
-            <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
-            <input 
-              type="text"
-              pattern="[0-9]*\.?[0-9]+"
-              value={threshold}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                if (!isNaN(value) && value >= 0.05 && value <= 1) {
-                  setThreshold(value);
-                }
-              }}
-              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-            />
+          
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
+              <input 
+                type="text"
+                pattern="[0-9]*\.?[0-9]+"
+                value={threshold}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value >= 0.05 && value <= 1) {
+                    setThreshold(value);
+                  }
+                }}
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Number of Links</label>
+              <input
+                type="text"
+                pattern="[0-9]*"
+                value={num}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (!isNaN(value) && value >= 1) {
+                    setNum(value);
+                  }
+                }}
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Number of Links</label>
-            <input
-              type="text"
-              pattern="[0-9]*"
-              value={num}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value) && value >= 1) {
-                  setNum(value);
-                }
-              }}
-              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-            />
-          </div>
-        </div>
+
+          <button
+            onClick={() => processFile(selectedFile)}
+            disabled={!selectedFile || isProcessing}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300"
+          >
+            Process Network
+          </button>
           
           {isProcessing && (
             <div className="text-sm text-gray-500">Processing file...</div>
           )}
         </div>
 
-        {/* Error Display */}
         {error && (
           <div className="p-4 bg-red-50 text-red-800 rounded">
             {error}
           </div>
         )}
 
-        {/* Debug Information */}
         {debugInfo && (
           <div className="p-4 bg-blue-50 rounded">
             <div className="space-y-4">
@@ -332,7 +328,6 @@ const GeneNetworkVisualizer = () => {
           </div>
         )}
 
-        {/* Network Visualization */}
         {networkData && networkData.nodes.length > 0 && (
           <div className="space-y-4">
             <div className="border rounded-lg overflow-hidden bg-white">
