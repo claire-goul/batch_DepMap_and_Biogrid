@@ -247,7 +247,7 @@ const GeneNetworkVisualizer = () => {
           <div>
             <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
             <input 
-              type="submit"
+              type="text"
               pattern="[0-9]*\.?[0-9]+"
               value={threshold}
               onChange={(e) => {
@@ -262,7 +262,7 @@ const GeneNetworkVisualizer = () => {
           <div>
             <label className="block text-sm font-medium mb-1">Number of Links</label>
             <input
-              type="submit"
+              type="text"
               pattern="[0-9]*"
               value={num}
               onChange={(e) => {
