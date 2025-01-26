@@ -83,7 +83,9 @@ const GeneNetworkVisualizer = () => {
       setError('Could not connect to server: ' + err.message);
     }
   };
-
+  const [threshold, setThreshold] = useState(0.2);
+  const [num, setNum] = useState(3);
+  
   const processFile = async (file) => {
     if (!file) {
       setError('Please upload a genes file');
@@ -97,6 +99,9 @@ const GeneNetworkVisualizer = () => {
     try {
       const formData = new FormData();
       formData.append('genes_file', file);
+      formData.append('threshold', threshold);
+      formData.append('num', num);
+    
 
       const response = await fetch(`${API_URL}/upload/`, {
         method: 'POST',
