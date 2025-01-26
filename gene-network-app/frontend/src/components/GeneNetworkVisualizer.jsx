@@ -239,6 +239,32 @@ const GeneNetworkVisualizer = () => {
             className="block w-full text-sm border border-gray-300 rounded cursor-pointer file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
             disabled={isProcessing}
           />
+            {/* Add new inputs here */}
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
+              <input 
+                type="number"
+                min="0.05"
+                max="1"
+                step="0.05"
+                value={threshold}
+                onChange={(e) => setThreshold(e.target.value)}
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Number of Links</label>
+              <input
+                type="number"
+                min="1"
+                value={num}
+                onChange={(e) => setNum(e.target.value)}
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+              />
+            </div>
+          </div>
+          
           {isProcessing && (
             <div className="text-sm text-gray-500">Processing file...</div>
           )}
