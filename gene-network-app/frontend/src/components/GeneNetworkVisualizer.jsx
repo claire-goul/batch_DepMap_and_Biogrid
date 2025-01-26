@@ -88,7 +88,7 @@ const GeneNetworkVisualizer = () => {
   
   const processFile = async (file) => {
     if (!file) {
-      setError('Please upload a genes file');
+      setError('Please upload a genes file (containing a column titled Gene and genes in the rows) ');
       return;
     }
 
@@ -242,7 +242,7 @@ const GeneNetworkVisualizer = () => {
             {/* Add new inputs here */}
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
+              <label className="block text-sm font-medium mb-1">Correlation Threshold (0.05-1)</label>
               <input 
                 type="number"
                 min="0.05"
@@ -254,7 +254,7 @@ const GeneNetworkVisualizer = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Number of Links</label>
+              <label className="block text-sm font-medium mb-1">Number of Correlated Genes</label>
               <input
                 type="number"
                 min="1"
