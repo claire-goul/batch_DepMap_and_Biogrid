@@ -68,6 +68,8 @@ const GeneNetworkVisualizer = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [threshold, setThreshold] = useState(0.2);
   const [num, setNum] = useState(3);
+  const [showInputs, setShowInputs] = useState(false);
+
 
   useEffect(() => {
     checkServerStatus();
@@ -233,37 +235,48 @@ const GeneNetworkVisualizer = () => {
             disabled={isProcessing}
           />
           
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            <div>
-              <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
-              <input 
-                type="text"
-                pattern="[0-9]*\.?[0-9]+"
-                value={threshold}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  if (!isNaN(value) && value >= 0.05 && value <= 1) {
-                    setThreshold(value);
-                  }
-                }}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Number of Links</label>
-              <input
-                type="text"
-                pattern="[0-9]*"
-                value={num}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value >= 1) {
-                    setNum(value);
-                  }
-                }}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-              />
-            </div>
+           <div>
+            <button
+              onClick={() => setShowInputs(!showInputs)}
+              className="mb-2 px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+            >
+              {showInputs ? "Hide Parameters" : "Show Parameters"}
+            </button>
+            
+            {showInputs && (
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
+                  <input 
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]+"
+                    value={threshold}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value) && value >= 0.05 && value <= 1) {
+                        setThreshold(value);
+                      }
+                    }}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Number of Links</label>
+                  <input
+                    type="text"
+                    pattern="[0-9]*"
+                    value={num}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (!isNaN(value) && value >= 1) {
+                        setNum(value);
+                      }
+                    }}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <button
