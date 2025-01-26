@@ -236,10 +236,13 @@ const GeneNetworkVisualizer = () => {
           />
           
            <div>
-            <button
-              onClick={() => setShowInputs(!showInputs)}
-              className="mb-2 px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-            >
+              <button
+                onClick={() => {
+                  console.log('Current showInputs:', showInputs);
+                  setShowInputs(!showInputs);
+                }}
+                className="mb-2 px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+              >
               {showInputs ? "Hide Parameters" : "Show Parameters"}
             </button>
             
