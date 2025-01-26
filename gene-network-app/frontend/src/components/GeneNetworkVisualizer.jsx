@@ -99,6 +99,11 @@ const GeneNetworkVisualizer = () => {
       formData.append('genes_file', file);
       formData.append('threshold', Number(threshold));
       formData.append('num', Number(num));
+      
+      console.log('FormData values:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
 
       const response = await fetch(`${API_URL}/upload/`, {
         method: 'POST',
@@ -238,30 +243,38 @@ const GeneNetworkVisualizer = () => {
             disabled={isProcessing}
           />
             {/* Add new inputs here */}
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            <div>
-              <label className="block text-sm font-medium mb-1">Correlation Threshold (0.05-1)</label>
-              <input 
-                type="number"
-                min="0.05"
-                max="1"
-                step="0.05"
-                value={threshold}
-                onChange={(e) => setThreshold(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Number of Correlated Genes</label>
-              <input
-                type="number"
-                min="1"
-                value={num}
-                onChange={(e) => setNum(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-              />
-            </div>
+         <div className="grid grid-cols-2 gap-4 mt-2">
+          <div>
+            <label className="block text-sm font-medium mb-1">Threshold (0.05-1)</label>
+            <input 
+              type="text"
+              pattern="[0-9]*\.?[0-9]+"
+              value={threshold}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (!isNaN(value) && value >= 0.05 && value <= 1) {
+                  setThreshold(value);
+                }
+              }}
+              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+            />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Number of Links</label>
+            <input
+              type="text"
+              pattern="[0-9]*"
+              value={num}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                if (!isNaN(value) && value >= 1) {
+                  setNum(value);
+                }
+              }}
+              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+            />
+          </div>
+        </div>
           
           {isProcessing && (
             <div className="text-sm text-gray-500">Processing file...</div>
