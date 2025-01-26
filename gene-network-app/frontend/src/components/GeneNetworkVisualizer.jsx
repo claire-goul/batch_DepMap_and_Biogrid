@@ -91,17 +91,14 @@ const GeneNetworkVisualizer = () => {
       setError('Please upload a genes file (containing a column titled Gene and genes in the rows) ');
       return;
     }
-
-    console.log('Processing file:', file.name);
     setIsProcessing(true);
     setError('');
 
     try {
       const formData = new FormData();
       formData.append('genes_file', file);
-      formData.append('threshold', threshold);
-      formData.append('num', num);
-    
+      formData.append('threshold', Number(threshold));
+      formData.append('num', Number(num));
 
       const response = await fetch(`${API_URL}/upload/`, {
         method: 'POST',
@@ -118,6 +115,7 @@ const GeneNetworkVisualizer = () => {
         console.error('Server response:', errorText);
         throw new Error(errorText || 'Network processing failed');
       }
+      console.log('Processing file:', file.name);
 
       const data = await response.json();
       console.log('Received network data:', data);
