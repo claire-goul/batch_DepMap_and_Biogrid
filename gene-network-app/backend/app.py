@@ -205,7 +205,11 @@ async def get_status():
     }
 
 @app.post("/upload/")
-async def process_network(genes_file: UploadFile = File(...)):
+async def process_network(
+    genes_file: UploadFile = File(...), 
+    threshold: float = Query(0.2,ge=0.05,le=1), 
+    num: int = Query(3,ge=1)
+):
     global links_filtered, biogrid_df
     logger.info("Upload endpoint called")
     
@@ -219,9 +223,9 @@ async def process_network(genes_file: UploadFile = File(...)):
         corr = get_correlations_edgelist(
             genes=genes_df,
             links_filtered=links_filtered,
-            threshold=0.2,
+            threshold=threshold,
             corrpos=True,
-            num=3
+            num=num
         )
 
         # Get BioGrid edges
