@@ -228,7 +228,7 @@ async def process_network(genes_file: UploadFile = File(...)):
         edgelist_biogrid = get_biogrid_edgelist(
             genes=genes_df,filters=[],
             bg=biogrid_df,
-            numcitations=2
+            numcitations=1
         )
 
         # Merge results
