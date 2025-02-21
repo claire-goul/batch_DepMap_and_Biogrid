@@ -91,19 +91,19 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
         alt_id_col = f'Alt IDs Interactor {interactor}'
         symbols = []
         for _, row in df.iterrows():
-            row_symbols = set()  # Using set here for unique symbols
-            if pd.notnull(row[alias_col]):
-                aliases = str(row[alias_col]).split('|')
-                for alias in aliases:
-                    if 'entrez gene/locuslink:' in alias.lower():
-                        gene = alias.split('(')[0].split(':')[-1].strip()
-                        row_symbols.add(gene)
+            row_symbols = []  # Using set here for unique symbols
             if pd.notnull(row[alt_id_col]):
                 alt_ids = str(row[alt_id_col]).split('|')
                 for alt_id in alt_ids:
                     if 'entrez gene/locuslink:' in alt_id.lower():
                         gene = alt_id.split('|')[0].split(':')[-1].strip()
-                        row_symbols.add(gene)
+                        row_symbols.append(gene)
+            if pd.notnull(row[alias_col]):
+                aliases = str(row[alias_col]).split('|')
+                for alias in aliases:
+                    if 'entrez gene/locuslink:' in alias.lower():
+                        gene = alias.split('(')[0].split(':')[-1].strip()
+                        row_symbols.append(gene)
             # Convert set to list before appending
             symbols.append(list(row_symbols) if row_symbols else [])
         return symbols
@@ -118,11 +118,11 @@ def get_biogrid_edgelist(genes, bg, filters, numcitations):
     for i in range(len(genes_a)):
         for gene_a in genes_a[i]:
             if gene_a in genes_list:
-                if genes_b[i] != gene_a:
+                if genes_b[i][0] != gene_a:
                     edges.append((gene_a, genes_b[i][0]))
         for gene_b in genes_b[i]:
             if gene_b in genes_list:
-                if genes_a[i] != gene_b:
+                if genes_a[i][0] != gene_b:
                     edges.append((gene_b, genes_a[i][0]))
     
     logger.info(f"Found {len(edges)} potential interactions")
@@ -226,19 +226,18 @@ async def process_network(genes_file: UploadFile = File(...)):
 
         # Get BioGrid edges
         edgelist_biogrid = get_biogrid_edgelist(
-            genes=genes_df,
+            genes=genes_df,filters=[],
             bg=biogrid_df,
-            filters=['psi-mi:"MI:0915"(physical association)'],
             numcitations=2
         )
 
         # Merge results
         logger.info("Merging correlation and BioGrid data...")
         corrwithbgforcorr = pd.merge(
-            corr, 
-            edgelist_biogrid, how='left',
+            corr[['Gene','Gene1','corrscore']], 
+            edgelist_biogrid, how='inner',
             on=['Gene', 'Gene1'])
-        
+
         # Log merge results
         log_dataframe_info(corrwithbgforcorr, "Merged Results")
 
