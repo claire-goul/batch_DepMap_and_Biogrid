@@ -221,7 +221,7 @@ async def process_network(genes_file: UploadFile = File(...)):
             links_filtered=links_filtered,
             threshold=0.2,
             corrpos=True,
-            num=3
+            num=4
         )
 
         # Get BioGrid edges
