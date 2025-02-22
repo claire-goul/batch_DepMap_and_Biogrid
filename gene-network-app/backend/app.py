@@ -39,7 +39,7 @@ def log_dataframe_info(df, name):
     logger.info(f"{name} DataFrame Info:")
     logger.info(f"Shape: {df.shape}")
     logger.info(f"Columns: {df.columns.tolist()}")
-    logger.info(f"Sample data:\n{df.head()}")
+    logger.info(f"Sample data:\n{df.head(20)}")
     logger.info(f"{'-'*50}\n")
     
 def get_correlations_edgelist(genes, links_filtered, threshold, corrpos, num):
@@ -275,7 +275,7 @@ async def process_network(genes_file: UploadFile = File(...)):
         logger.info(f"Total nodes: {len(network_data['nodes'])}")
         logger.info(f"Total edges: {len(network_data['edges'])}")
         logger.info(f"Edges: {network_data['edges']}")
-        logger.info(f"Sample edges:\n{json.dumps(network_data['edges'][:5], indent=2)}")
+        logger.info(f"Sample edges:\n{json.dumps(network_data['edges'][:], indent=2)}")
 
         return network_data
 
