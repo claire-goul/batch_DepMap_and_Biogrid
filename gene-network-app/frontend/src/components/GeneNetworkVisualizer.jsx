@@ -8,15 +8,8 @@ const options = {
   nodes: {
     shape: 'dot',
     size: 15,  // Reduced size for less overlap
-    scaling: {
-      min: 10,
-      max: 30,
-      label: {
-        enabled: true,
-        min: 14,
-        max: 24
-      }
-    },
+    borderWidth: 0,
+    shadow: false,
     font: {
       size: 14,  // Slightly smaller font
       color: '#333333'
@@ -29,15 +22,14 @@ const options = {
     }
   },
   edges: {
-    width: 1,  // Thinner edges
-    smooth: {
-      type: 'continuous',
-      roundness: 0.5
-    },
-    color: {
-      opacity: 0.6  // More transparent edges
+    width: 2,
+    smooth: false,
+    shadow: false,
+    arrows: {
+      to: false,
+      from: false
     }
-  },
+    },
   physics: {
     enabled: false,
     forceAtlas2Based: {
@@ -56,10 +48,12 @@ const options = {
       fit: true
     },
     adaptiveTimestep: true,
+    timestep: 0.5,
     minVelocity: 0.75
   },
   layout: {
     improvedLayout: true,
+    randomSeed: 42
   },
   interaction: {
     hover: true,
@@ -69,7 +63,6 @@ const options = {
     multiselect: true,
   },
   height: '800px',  // Increased height
-  autoResize: true
 };
 
 const GeneNetworkVisualizer = () => {
