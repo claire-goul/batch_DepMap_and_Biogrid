@@ -39,38 +39,27 @@ const options = {
     }
   },
   physics: {
-    enabled: true,
-    barnesHut: {  // Changed to barnesHut solver for better performance with large networks
-      gravitationalConstant: -2000,
-      centralGravity: 0.3,
-      springLength: 200,
-      springConstant: 0.04,
-      damping: 0.09,
-      avoidOverlap: 1
+    enabled: false,
+    forceAtlas2Based: {
+      gravitationalConstant: -50,
+      centralGravity: 0.01,
+      springLength: 100,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 1.5
     },
-    solver: 'barnesHut',
+    solver: 'forceAtlas2Based',
     stabilization: {
       enabled: true,
-      iterations: 2000,
-      updateInterval: 50,
+      iterations: 1000,
+      updateInterval: 25,
       fit: true
     },
     adaptiveTimestep: true,
-    minVelocity: 0.5
+    minVelocity: 0.75
   },
   layout: {
     improvedLayout: true,
-    hierarchical: {
-      enabled: true,
-      levelSeparation: 250,
-      nodeSpacing: 200,
-      treeSpacing: 200,
-      blockShifting: true,
-      edgeMinimization: true,
-      parentCentralization: true,
-      direction: 'UD',  // Up to Down layout
-      sortMethod: 'hubsize'  // Arrange by node connectivity
-    }
   },
   interaction: {
     hover: true,
@@ -78,8 +67,6 @@ const options = {
     dragView: true,
     dragNodes: true,
     multiselect: true,
-    navigationButtons: true,  // Added navigation controls
-    keyboard: true  // Enable keyboard navigation
   },
   height: '800px',  // Increased height
   autoResize: true
