@@ -7,11 +7,11 @@ const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 const options = {
   nodes: {
     shape: 'dot',
-    size: 14,
+    size: 11,
     borderWidth: 0,
     shadow: false,
     font: {
-      size: 14,
+      size: 11,
       color: '#333333'
     }
   },
@@ -25,7 +25,7 @@ const options = {
     }
   },
   physics: {
-    enabled: false,
+    enabled: true,
     forceAtlas2Based: {
       gravitationalConstant: -50,
       centralGravity: 0.01,
