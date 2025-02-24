@@ -7,83 +7,58 @@ const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 const options = {
   nodes: {
     shape: 'dot',
-    size: 15,  // Reduced size for less overlap
-    scaling: {
-      min: 10,
-      max: 30,
-      label: {
-        enabled: true,
-        min: 14,
-        max: 24
-      }
-    },
+    size: 20,
+    borderWidth: 0,
+    shadow: false,
     font: {
-      size: 14,  // Slightly smaller font
+      size: 14,
       color: '#333333'
-    },
-    margin: 10,  // Add margin around nodes
-    borderWidth: 1,
-    shadow: {
-      enabled: true,
-      size: 3
     }
   },
   edges: {
-    width: 1,  // Thinner edges
-    smooth: {
-      type: 'continuous',
-      roundness: 0.5
-    },
-    color: {
-      opacity: 0.6  // More transparent edges
+    width: 1,
+    smooth: false,
+    shadow: false,
+    arrows: {
+      to: false,
+      from: false
     }
   },
   physics: {
-    enabled: true,
-    barnesHut: {  // Changed to barnesHut solver for better performance with large networks
-      gravitationalConstant: -2000,
-      centralGravity: 0.3,
-      springLength: 200,
-      springConstant: 0.04,
-      damping: 0.09,
-      avoidOverlap: 1
+    enabled: false,
+    forceAtlas2Based: {
+      gravitationalConstant: -50,
+      centralGravity: 0.01,
+      springLength: 100,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 1.5
     },
-    solver: 'barnesHut',
+    solver: 'forceAtlas2Based',
     stabilization: {
       enabled: true,
-      iterations: 2000,
-      updateInterval: 50,
+      iterations: 1000,
+      updateInterval: 25,
       fit: true
     },
     adaptiveTimestep: true,
-    minVelocity: 0.5
+    timestep: 0.5,
+    minVelocity: 0.75
   },
   layout: {
     improvedLayout: true,
-    hierarchical: {
-      enabled: true,
-      levelSeparation: 250,
-      nodeSpacing: 200,
-      treeSpacing: 200,
-      blockShifting: true,
-      edgeMinimization: true,
-      parentCentralization: true,
-      direction: 'UD',  // Up to Down layout
-      sortMethod: 'hubsize'  // Arrange by node connectivity
-    }
+    randomSeed: 42
   },
   interaction: {
     hover: true,
     zoomView: true,
     dragView: true,
     dragNodes: true,
-    multiselect: true,
-    navigationButtons: true,  // Added navigation controls
-    keyboard: true  // Enable keyboard navigation
+    multiselect: true
   },
-  height: '800px',  // Increased height
-  autoResize: true
+  height: '800px'
 };
+
 
 const GeneNetworkVisualizer = () => {
   const [networkData, setNetworkData] = useState(null);
