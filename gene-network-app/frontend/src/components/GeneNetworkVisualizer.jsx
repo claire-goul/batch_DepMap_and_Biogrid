@@ -20,12 +20,6 @@ cconst options = {
     font: {
       size: 14,  // Slightly smaller font
       color: '#333333'
-    },
-    margin: 10,  // Add margin around nodes
-    borderWidth: 1,
-    shadow: {
-      enabled: true,
-      size: 3
     }
   },
   edges: {
