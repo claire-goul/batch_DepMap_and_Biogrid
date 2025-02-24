@@ -7,7 +7,7 @@ const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 const options = {
   nodes: {
     shape: 'dot',
-    size: 20,
+    size: 14,
     borderWidth: 0,
     shadow: false,
     font: {
