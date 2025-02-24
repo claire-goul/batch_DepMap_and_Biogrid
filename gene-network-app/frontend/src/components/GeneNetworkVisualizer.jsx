@@ -4,15 +4,28 @@ import Graph from 'react-graph-vis';
 
 const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
-const options = {
+cconst options = {
   nodes: {
     shape: 'dot',
-    size: 11,
-    borderWidth: 0,
-    shadow: false,
+    size: 15,  // Reduced size for less overlap
+    scaling: {
+      min: 10,
+      max: 30,
+      label: {
+        enabled: true,
+        min: 14,
+        max: 24
+      }
+    },
     font: {
-      size: 11,
+      size: 14,  // Slightly smaller font
       color: '#333333'
+    },
+    margin: 10,  // Add margin around nodes
+    borderWidth: 1,
+    shadow: {
+      enabled: true,
+      size: 3
     }
   },
   edges: {
