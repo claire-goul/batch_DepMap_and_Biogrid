@@ -4,21 +4,14 @@ import Graph from 'react-graph-vis';
 
 const API_URL = 'https://batch-depmap-and-biogrid.onrender.com';
 
-cconst options = {
+const options = {
   nodes: {
     shape: 'dot',
-    size: 15,  // Reduced size for less overlap
-    scaling: {
-      min: 10,
-      max: 30,
-      label: {
-        enabled: true,
-        min: 14,
-        max: 24
-      }
-    },
+    size: 10,
+    borderWidth: 0,
+    shadow: false,
     font: {
-      size: 14,  // Slightly smaller font
+      size: 8,
       color: '#333333'
     }
   },
@@ -32,7 +25,7 @@ cconst options = {
     }
   },
   physics: {
-    enabled: true,
+    enabled: false,
     forceAtlas2Based: {
       gravitationalConstant: -50,
       centralGravity: 0.01,
@@ -65,8 +58,6 @@ cconst options = {
   },
   height: '800px'
 };
-
-
 const GeneNetworkVisualizer = () => {
   const [networkData, setNetworkData] = useState(null);
   const [error, setError] = useState('');
